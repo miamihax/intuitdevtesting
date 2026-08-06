@@ -7,7 +7,7 @@ def _default_data_dir() -> Path:
     # dev keeps using backend/data/ so nothing changes for that workflow.
     if os.getenv("VERCEL"):
         return Path("/tmp/optiroute-data")
-    return Path(__file__).resolve().parent.parent / "data"
+    return Path(__file__).resolve().parent.parent.parent / "data"
 
 
 DATA_DIR = Path(os.getenv("DATA_DIR") or _default_data_dir())

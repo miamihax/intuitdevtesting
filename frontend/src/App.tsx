@@ -4,6 +4,7 @@ import EditDriversModal from './components/EditDriversModal'
 import ImportOrdersModal from './components/ImportOrdersModal'
 import MapView from './components/Map'
 import OfficeSettingsModal from './components/OfficeSettingsModal'
+import SettingsModal from './components/SettingsModal'
 import Sidebar from './components/Sidebar'
 import type { Driver, DriverRoute, OfficeLocation, Store, UpdateDriverFields } from './types'
 
@@ -19,6 +20,7 @@ export default function App() {
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [officeModalOpen, setOfficeModalOpen] = useState(false)
   const [driversModalOpen, setDriversModalOpen] = useState(false)
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false)
   const [office, setOffice] = useState<OfficeLocation | null>(null)
 
   useEffect(() => {
@@ -114,6 +116,7 @@ export default function App() {
         selectedDriverIds={selectedDriverIds}
         onToggleDriver={handleToggleDriver}
         onEditDrivers={() => setDriversModalOpen(true)}
+        onOpenSettings={() => setSettingsModalOpen(true)}
       />
       <MapView
         stores={stores}
@@ -127,7 +130,6 @@ export default function App() {
         onOptimize={handleOptimize}
         onUpdateStore={handleUpdateStore}
         onImportOrders={() => setImportModalOpen(true)}
-        onEditOffice={() => setOfficeModalOpen(true)}
       />
       {error && <div className="error-banner">{error}</div>}
       {importModalOpen && (
@@ -135,6 +137,15 @@ export default function App() {
       )}
       {officeModalOpen && (
         <OfficeSettingsModal onClose={() => setOfficeModalOpen(false)} onOfficeUpdated={handleOfficeUpdated} />
+      )}
+      {settingsModalOpen && (
+        <SettingsModal
+          onClose={() => setSettingsModalOpen(false)}
+          onEditOffice={() => {
+            setSettingsModalOpen(false)
+            setOfficeModalOpen(true)
+          }}
+        />
       )}
       {driversModalOpen && (
         <EditDriversModal

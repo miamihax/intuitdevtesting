@@ -8,6 +8,7 @@ interface SidebarProps {
   selectedDriverIds: string[]
   onToggleDriver: (driverId: string) => void
   onEditDrivers: () => void
+  onOpenSettings: () => void
 }
 
 export default function Sidebar({
@@ -17,6 +18,7 @@ export default function Sidebar({
   selectedDriverIds,
   onToggleDriver,
   onEditDrivers,
+  onOpenSettings,
 }: SidebarProps) {
   // An empty selection means "all drivers" for stat purposes too.
   const visibleRoutes =
@@ -34,7 +36,12 @@ export default function Sidebar({
     <aside className={collapsed ? 'sidebar collapsed' : 'sidebar'}>
       {!collapsed && (
       <div className="sidebar-content">
-        <h1>OptiRoute</h1>
+        <div className="sidebar-title-row">
+          <h1>OptiRoute</h1>
+          <button className="settings-button" onClick={onOpenSettings} aria-label="Settings">
+            ⚙
+          </button>
+        </div>
         <p className="subtitle">Liquor delivery route planning</p>
 
         <ul className="stats-grid">

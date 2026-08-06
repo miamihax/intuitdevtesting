@@ -1,23 +1,33 @@
 import threading
 
 from .models import Coordinates, OfficeLocation
+from .paths import DATA_DIR
 
 # Same coordinates data.py used to hardcode as the shared driver depot —
 # kept here so both data.py (initial driver depots) and this module (the
 # office-location state itself) point at one definition.
 DEFAULT_COORDINATES = Coordinates(lat=41.8850, lng=-87.6298)
 
+# Persisted to disk (not just kept in memory) so the office location survives
+# a backend restart or page refresh — same DATA_DIR pattern as qbo_tokens.py.
+_OFFICE_PATH = DATA_DIR / "office.json"
 _lock = threading.Lock()
-_office = OfficeLocation(address=None, coordinates=DEFAULT_COORDINATES)
+
+
+def _read() -> OfficeLocation:
+    if _OFFICE_PATH.exists():
+        return OfficeLocation.model_validate_json(_OFFICE_PATH.read_text())
+    return OfficeLocation(address=None, coordinates=DEFAULT_COORDINATES)
 
 
 def get_office() -> OfficeLocation:
     with _lock:
-        return _office
+        return _read()
 
 
 def set_office(address: str, coordinates: Coordinates) -> OfficeLocation:
-    global _office
+    office = OfficeLocation(address=address, coordinates=coordinates)
     with _lock:
-        _office = OfficeLocation(address=address, coordinates=coordinates)
-        return _office
+        _OFFICE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _OFFICE_PATH.write_text(office.model_dump_json())
+    return office

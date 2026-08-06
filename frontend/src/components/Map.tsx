@@ -18,7 +18,6 @@ interface MapProps {
   onOptimize: (storeIds?: string[]) => void
   onUpdateStore: (storeId: string, patch: Partial<Store>) => void
   onImportOrders: () => void
-  onEditOffice: () => void
   center?: [number, number]
 }
 
@@ -34,7 +33,6 @@ export default function MapView({
   onOptimize,
   onUpdateStore,
   onImportOrders,
-  onEditOffice,
   center = [-87.6298, 41.8781],
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -226,7 +224,6 @@ export default function MapView({
         routes={visibleRoutes}
         loading={loading}
         onImportOrders={onImportOrders}
-        onEditOffice={onEditOffice}
         onOptimize={onOptimize}
         onUpdateStore={onUpdateStore}
         selectedOrderIds={selectedOrderIds}
