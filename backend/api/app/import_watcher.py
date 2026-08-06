@@ -47,6 +47,7 @@ class IncomingInvoiceHandler(FileSystemEventHandler):
                 name=fields.get("location"),
                 address=address,
                 coordinates=coordinates,
+                case_count=fields.get("case_count"),
             )
         except Exception as exc:  # a bad file must not take down the watcher thread
             update_pending(pending_id, status="error", error=str(exc))
