@@ -1,6 +1,10 @@
 import type { ConfirmImportFields, Driver, OptimizeResponse, PendingImport, Store } from '../types'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+// Strip any trailing slash so a misconfigured env var (e.g. "https://host.com/")
+// can't turn "${API_BASE_URL}/api/..." into a double slash — Vercel redirects
+// that to the single-slash form, and browsers refuse to follow redirects on
+// CORS preflight requests, which silently breaks every API call.
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000').replace(/\/+$/, '')
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
