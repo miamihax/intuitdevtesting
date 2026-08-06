@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import type { Driver, DriverRoute, Store } from '../types'
 
+// Converts a decimal minute value (e.g. 45.3) into "1h 45m 18s" instead of
+// showing the raw fraction — omits the hours part when there aren't any.
+function formatDuration(totalMinutes: number): string {
+  const totalSeconds = Math.round(totalMinutes * 60)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return hours > 0 ? `${hours}h ${minutes}m ${seconds}s` : `${minutes}m ${seconds}s`
+}
+
 interface SidebarProps {
   stores: Store[]
   drivers: Driver[]
@@ -94,7 +104,8 @@ export default function Sidebar({
                       )}
                     </div>
                     <div className="route-time-breakdown">
-                      {route.total_drive_minutes} min driving · {route.total_service_minutes} min stops
+                      {formatDuration(route.total_drive_minutes)} driving ·{' '}
+                      {formatDuration(route.total_service_minutes)} stops
                     </div>
                     <ul className="stop-etas">
                       {route.stops.map((stop) => (
