@@ -18,7 +18,7 @@ venv\Scripts\activate        # Windows
 # source venv/bin/activate   # macOS/Linux
 pip install -r requirements.txt
 copy .env.example .env       # then fill in ANTHROPIC_API_KEY if you'll use the /api/agent/ask endpoint
-uvicorn app.main:app --reload --port 8000
+uvicorn api.app.main:app --reload --port 8000
 ```
 
 Requires Python 3.10+.
