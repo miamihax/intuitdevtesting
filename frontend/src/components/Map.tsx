@@ -1,7 +1,7 @@
 import maplibregl, { Map as MapLibreMap, Marker } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useEffect, useMemo, useRef } from 'react'
-import type { Driver, DriverRoute, Store } from '../types'
+import type { Driver, DriverRoute, OfficeLocation, Store } from '../types'
 import OrdersPanel from './OrdersPanel'
 
 const ROUTE_COLORS = ['#e63946', '#2a9d8f', '#457b9d', '#f4a261', '#9d4edd', '#ffb703']
@@ -10,6 +10,7 @@ interface MapProps {
   stores: Store[]
   routes: DriverRoute[]
   drivers: Driver[]
+  office: OfficeLocation | null
   selectedDriverIds: string[]
   selectedOrderIds: string[]
   onSelectedOrderIdsChange: (updater: string[] | ((prev: string[]) => string[])) => void
@@ -25,6 +26,7 @@ export default function MapView({
   stores,
   routes,
   drivers,
+  office,
   selectedDriverIds,
   selectedOrderIds,
   onSelectedOrderIdsChange,
@@ -38,6 +40,7 @@ export default function MapView({
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const markersRef = useRef<Marker[]>([])
+  const officeMarkerRef = useRef<Marker | null>(null)
 
   // Only the checked drivers' routes are shown; an empty selection shows everyone.
   const visibleRoutes = useMemo(
@@ -136,6 +139,31 @@ export default function MapView({
     if (map.isStyleLoaded()) addMarkers()
     else map.once('load', addMarkers)
   }, [stores, visibleRoutes, drivers, selectedDriverIds, selectedOrderIds, onSelectedOrderIdsChange])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const addOfficeMarker = () => {
+      officeMarkerRef.current?.remove()
+      officeMarkerRef.current = null
+      if (!office) return
+
+      const el = document.createElement('div')
+      el.className = 'office-marker'
+      officeMarkerRef.current = new maplibregl.Marker({ element: el })
+        .setLngLat([office.coordinates.lng, office.coordinates.lat])
+        .setPopup(
+          new maplibregl.Popup({ offset: 12 }).setHTML(
+            `<strong>Office</strong>${office.address ? `<br/>${office.address}` : ''}`,
+          ),
+        )
+        .addTo(map)
+    }
+
+    if (map.isStyleLoaded()) addOfficeMarker()
+    else map.once('load', addOfficeMarker)
+  }, [office])
 
   useEffect(() => {
     const map = mapRef.current

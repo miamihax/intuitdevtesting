@@ -17,12 +17,14 @@ export default function App() {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([])
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [officeModalOpen, setOfficeModalOpen] = useState(false)
+  const [office, setOffice] = useState<OfficeLocation | null>(null)
 
   useEffect(() => {
-    Promise.all([api.getStores(), api.getDrivers()])
-      .then(([storesData, driversData]) => {
+    Promise.all([api.getStores(), api.getDrivers(), api.getOffice()])
+      .then(([storesData, driversData, officeData]) => {
         setStores(storesData)
         setDrivers(driversData)
+        setOffice(officeData)
       })
       .catch((e: Error) => setError(e.message))
   }, [])
@@ -63,10 +65,11 @@ export default function App() {
     setStores((prev) => [...prev, store])
   }
 
-  const handleOfficeUpdated = (office: OfficeLocation) => {
+  const handleOfficeUpdated = (updated: OfficeLocation) => {
+    setOffice(updated)
     // Every driver shares the same depot — keep the local list in sync with
     // the backend so the map/route preview reflects the move immediately.
-    setDrivers((prev) => prev.map((driver) => ({ ...driver, depot: office.coordinates })))
+    setDrivers((prev) => prev.map((driver) => ({ ...driver, depot: updated.coordinates })))
   }
 
   return (
@@ -82,6 +85,7 @@ export default function App() {
         stores={stores}
         routes={routes}
         drivers={drivers}
+        office={office}
         selectedDriverIds={selectedDriverIds}
         selectedOrderIds={selectedOrderIds}
         onSelectedOrderIdsChange={setSelectedOrderIds}

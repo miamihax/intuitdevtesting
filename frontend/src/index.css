@@ -357,6 +357,15 @@ body {
   outline-offset: 2px;
 }
 
+.office-marker {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fb8500;
+  border: 3px solid white;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+}
+
 .import-modal-overlay {
   position: fixed;
   inset: 0;
