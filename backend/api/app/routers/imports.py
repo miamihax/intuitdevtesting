@@ -48,8 +48,12 @@ def confirm_import(pending_id: str, request: ConfirmImportRequest) -> Store:
 
     pop_pending(pending_id)
 
+    # Prefer the invoice number as the order ID so it's traceable back to its
+    # source document — fall back to a random ID when one wasn't extracted.
+    store_id = pending.invoice_number or f"import-{uuid.uuid4().hex[:8]}"
+
     store = Store(
-        id=f"import-{uuid.uuid4().hex[:8]}",
+        id=store_id,
         name=request.name,
         address=request.address,
         coordinates=coordinates,
