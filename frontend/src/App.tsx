@@ -1,0 +1,91 @@
+import { useEffect, useState } from 'react'
+import { api } from './api/client'
+import ImportOrdersModal from './components/ImportOrdersModal'
+import MapView from './components/Map'
+import Sidebar from './components/Sidebar'
+import type { Driver, DriverRoute, Store } from './types'
+
+export default function App() {
+  const [stores, setStores] = useState<Store[]>([])
+  const [drivers, setDrivers] = useState<Driver[]>([])
+  const [routes, setRoutes] = useState<DriverRoute[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedDriverIds, setSelectedDriverIds] = useState<string[]>([])
+  // Shared between the map (clicking dots) and the orders table (clicking rows).
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([])
+  const [importModalOpen, setImportModalOpen] = useState(false)
+
+  useEffect(() => {
+    Promise.all([api.getStores(), api.getDrivers()])
+      .then(([storesData, driversData]) => {
+        setStores(storesData)
+        setDrivers(driversData)
+      })
+      .catch((e: Error) => setError(e.message))
+  }, [])
+
+  const handleOptimize = (storeIds?: string[]) => {
+    setLoading(true)
+    setError(null)
+    // An empty driver selection means "all drivers", matching how the
+    // checkboxes already behave for filtering the map/sidebar display.
+    const driverIds = selectedDriverIds.length > 0 ? selectedDriverIds : undefined
+    api
+      .optimize(storeIds, driverIds)
+      .then((result) => {
+        setRoutes((prev) => {
+          if (!driverIds) return result.routes
+          // Scoped to specific drivers: keep everyone else's existing route
+          // and only replace the ones that were just recomputed.
+          const untouched = prev.filter((r) => !driverIds.includes(r.driver.id))
+          return [...untouched, ...result.routes]
+        })
+        setSelectedOrderIds([])
+      })
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false))
+  }
+
+  const handleToggleDriver = (driverId: string) => {
+    setSelectedDriverIds((prev) =>
+      prev.includes(driverId) ? prev.filter((id) => id !== driverId) : [...prev, driverId],
+    )
+  }
+
+  const handleUpdateStore = (storeId: string, patch: Partial<Store>) => {
+    setStores((prev) => prev.map((store) => (store.id === storeId ? { ...store, ...patch } : store)))
+  }
+
+  const handleStoreImported = (store: Store) => {
+    setStores((prev) => [...prev, store])
+  }
+
+  return (
+    <div className="app-shell">
+      <Sidebar
+        stores={stores}
+        drivers={drivers}
+        routes={routes}
+        selectedDriverIds={selectedDriverIds}
+        onToggleDriver={handleToggleDriver}
+      />
+      <MapView
+        stores={stores}
+        routes={routes}
+        drivers={drivers}
+        selectedDriverIds={selectedDriverIds}
+        selectedOrderIds={selectedOrderIds}
+        onSelectedOrderIdsChange={setSelectedOrderIds}
+        loading={loading}
+        onOptimize={handleOptimize}
+        onUpdateStore={handleUpdateStore}
+        onImportOrders={() => setImportModalOpen(true)}
+      />
+      {error && <div className="error-banner">{error}</div>}
+      {importModalOpen && (
+        <ImportOrdersModal onClose={() => setImportModalOpen(false)} onStoreImported={handleStoreImported} />
+      )}
+    </div>
+  )
+}

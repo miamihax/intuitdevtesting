@@ -1,0 +1,49 @@
+import type { ConfirmImportFields, Driver, OptimizeResponse, PendingImport, Store } from '../types'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  })
+  if (!response.ok) {
+    // FastAPI error bodies are {"detail": "..."} — surface that when present,
+    // since it's usually far more useful than the bare status text.
+    const body = await response.json().catch(() => null)
+    const detail = typeof body?.detail === 'string' ? body.detail : null
+    throw new Error(detail ?? `Request to ${path} failed: ${response.status} ${response.statusText}`)
+  }
+  return response.json() as Promise<T>
+}
+
+export const api = {
+  quickbooksConnectUrl: `${API_BASE_URL}/api/quickbooks/connect`,
+  getStores: () => request<Store[]>('/api/stores'),
+  getDrivers: () => request<Driver[]>('/api/drivers'),
+  optimize: (storeIds?: string[], driverIds?: string[]) =>
+    request<OptimizeResponse>('/api/optimize', {
+      method: 'POST',
+      body: JSON.stringify({ store_ids: storeIds ?? null, driver_ids: driverIds ?? null }),
+    }),
+  uploadImportFile: async (file: File): Promise<{ pending_id: string }> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    // No Content-Type here — the browser sets the multipart boundary itself.
+    const response = await fetch(`${API_BASE_URL}/api/imports/upload`, { method: 'POST', body: formData })
+    if (!response.ok) {
+      const body = await response.json().catch(() => null)
+      const detail = typeof body?.detail === 'string' ? body.detail : null
+      throw new Error(detail ?? `Upload failed: ${response.status} ${response.statusText}`)
+    }
+    return response.json()
+  },
+  getPendingImports: () => request<PendingImport[]>('/api/imports/pending'),
+  confirmImport: (pendingId: string, fields: ConfirmImportFields) =>
+    request<Store>(`/api/imports/${pendingId}/confirm`, {
+      method: 'POST',
+      body: JSON.stringify(fields),
+    }),
+  dismissImport: (pendingId: string) =>
+    request<{ ok: boolean }>(`/api/imports/${pendingId}/dismiss`, { method: 'POST' }),
+}

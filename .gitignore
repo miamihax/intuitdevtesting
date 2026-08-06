@@ -1,0 +1,23 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Env files
+.env
+.env.local
+
+# Uploaded/OCR'd invoice files (see backend/app/import_watcher.py)
+backend/data/
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
