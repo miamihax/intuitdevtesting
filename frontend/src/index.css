@@ -515,6 +515,12 @@ body {
   font-size: 0.85rem;
 }
 
+.new-driver-form {
+  margin: 0.75rem 1rem 0;
+  background: #f7f9fc;
+  border-color: #d7e3f7;
+}
+
 .import-pending-item {
   border: 1px solid #eee;
   border-radius: 6px;

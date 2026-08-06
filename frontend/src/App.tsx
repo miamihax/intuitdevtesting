@@ -91,6 +91,10 @@ export default function App() {
     api.updateDriver(driver.id, fields).catch((e: Error) => setError(e.message))
   }
 
+  const handleDriverCreated = (driver: Driver) => {
+    setDrivers((prev) => [...prev, driver])
+  }
+
   const handleDeleteDriver = (driverId: string) => {
     api
       .deleteDriver(driverId)
@@ -136,6 +140,7 @@ export default function App() {
         <EditDriversModal
           drivers={drivers}
           onClose={() => setDriversModalOpen(false)}
+          onDriverCreated={handleDriverCreated}
           onUpdateDriverField={handleUpdateDriverField}
           onPersistDriver={handlePersistDriver}
           onDeleteDriver={handleDeleteDriver}

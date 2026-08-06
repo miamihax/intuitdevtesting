@@ -1,7 +1,10 @@
+import uuid
+
 from fastapi import APIRouter, HTTPException
 
 from ..data import DRIVERS
 from ..models import Driver, UpdateDriverRequest
+from ..office import get_office
 
 router = APIRouter(prefix="/api/drivers")
 
@@ -10,6 +13,20 @@ def _find(driver_id: str) -> Driver:
     driver = next((d for d in DRIVERS if d.id == driver_id), None)
     if driver is None:
         raise HTTPException(status_code=404, detail="Unknown driver id")
+    return driver
+
+
+@router.post("", response_model=Driver)
+def create_driver(request: UpdateDriverRequest) -> Driver:
+    driver = Driver(
+        id=f"driver-{uuid.uuid4().hex[:8]}",
+        name=request.name,
+        depot=get_office().coordinates,
+        vehicle_capacity_cases=request.vehicle_capacity_cases,
+        shift_start=request.shift_start,
+        shift_end=request.shift_end,
+    )
+    DRIVERS.append(driver)
     return driver
 
 

@@ -61,6 +61,8 @@ export const api = {
   getOffice: () => request<OfficeLocation>('/api/office'),
   setOffice: (address: string) =>
     request<OfficeLocation>('/api/office', { method: 'PUT', body: JSON.stringify({ address }) }),
+  createDriver: (fields: UpdateDriverFields) =>
+    request<Driver>('/api/drivers', { method: 'POST', body: JSON.stringify(fields) }),
   updateDriver: (driverId: string, fields: UpdateDriverFields) =>
     request<Driver>(`/api/drivers/${driverId}`, { method: 'PUT', body: JSON.stringify(fields) }),
   deleteDriver: (driverId: string) =>
