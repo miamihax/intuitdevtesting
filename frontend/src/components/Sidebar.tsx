@@ -7,9 +7,7 @@ interface SidebarProps {
   routes: DriverRoute[]
   selectedDriverIds: string[]
   onToggleDriver: (driverId: string) => void
-  onUpdateDriverField: (driverId: string, patch: Partial<Driver>) => void
-  onPersistDriver: (driver: Driver) => void
-  onDeleteDriver: (driverId: string) => void
+  onEditDrivers: () => void
 }
 
 export default function Sidebar({
@@ -18,9 +16,7 @@ export default function Sidebar({
   routes,
   selectedDriverIds,
   onToggleDriver,
-  onUpdateDriverField,
-  onPersistDriver,
-  onDeleteDriver,
+  onEditDrivers,
 }: SidebarProps) {
   // An empty selection means "all drivers" for stat purposes too.
   const visibleRoutes =
@@ -33,7 +29,6 @@ export default function Sidebar({
   const unscheduledOrders = totalOrders - scheduledOrders
 
   const [collapsed, setCollapsed] = useState(false)
-  const [editingDrivers, setEditingDrivers] = useState(false)
 
   return (
     <aside className={collapsed ? 'sidebar collapsed' : 'sidebar'}>
@@ -63,59 +58,14 @@ export default function Sidebar({
 
         <div className="drivers-section-header">
           <h2>Drivers</h2>
-          <button className="edit-drivers-button" onClick={() => setEditingDrivers((e) => !e)}>
-            {editingDrivers ? 'Done Editing' : 'Edit Drivers'}
+          <button className="edit-drivers-button" onClick={onEditDrivers}>
+            Edit Drivers
           </button>
         </div>
         <ul className="driver-list">
           {drivers.map((driver) => {
             const route = routes.find((r) => r.driver.id === driver.id)
-            return editingDrivers ? (
-              <li key={driver.id} className="driver-edit-form">
-                <label>
-                  Name
-                  <input
-                    value={driver.name}
-                    onChange={(e) => onUpdateDriverField(driver.id, { name: e.target.value })}
-                    onBlur={() => onPersistDriver(driver)}
-                  />
-                </label>
-                <div className="driver-edit-row">
-                  <label>
-                    Capacity (cases)
-                    <input
-                      className="case-count-input"
-                      type="number"
-                      min={0}
-                      value={driver.vehicle_capacity_cases}
-                      onChange={(e) =>
-                        onUpdateDriverField(driver.id, { vehicle_capacity_cases: Number(e.target.value) || 0 })
-                      }
-                      onBlur={() => onPersistDriver(driver)}
-                    />
-                  </label>
-                  <label className="time-window-cell">
-                    Shift
-                    <input
-                      type="time"
-                      value={driver.shift_start}
-                      onChange={(e) => onUpdateDriverField(driver.id, { shift_start: e.target.value })}
-                      onBlur={() => onPersistDriver(driver)}
-                    />
-                    <span> – </span>
-                    <input
-                      type="time"
-                      value={driver.shift_end}
-                      onChange={(e) => onUpdateDriverField(driver.id, { shift_end: e.target.value })}
-                      onBlur={() => onPersistDriver(driver)}
-                    />
-                  </label>
-                </div>
-                <button className="delete-driver-button" onClick={() => onDeleteDriver(driver.id)}>
-                  Delete Driver
-                </button>
-              </li>
-            ) : (
+            return (
               <li key={driver.id}>
                 <label className="driver-checkbox">
                   <input

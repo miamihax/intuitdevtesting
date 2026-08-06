@@ -356,7 +356,6 @@ body {
 }
 
 .delete-driver-button {
-  align-self: flex-start;
   color: #e63946;
   border-color: #e63946;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from './api/client'
+import EditDriversModal from './components/EditDriversModal'
 import ImportOrdersModal from './components/ImportOrdersModal'
 import MapView from './components/Map'
 import OfficeSettingsModal from './components/OfficeSettingsModal'
@@ -17,6 +18,7 @@ export default function App() {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([])
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [officeModalOpen, setOfficeModalOpen] = useState(false)
+  const [driversModalOpen, setDriversModalOpen] = useState(false)
   const [office, setOffice] = useState<OfficeLocation | null>(null)
 
   useEffect(() => {
@@ -107,9 +109,7 @@ export default function App() {
         routes={routes}
         selectedDriverIds={selectedDriverIds}
         onToggleDriver={handleToggleDriver}
-        onUpdateDriverField={handleUpdateDriverField}
-        onPersistDriver={handlePersistDriver}
-        onDeleteDriver={handleDeleteDriver}
+        onEditDrivers={() => setDriversModalOpen(true)}
       />
       <MapView
         stores={stores}
@@ -131,6 +131,15 @@ export default function App() {
       )}
       {officeModalOpen && (
         <OfficeSettingsModal onClose={() => setOfficeModalOpen(false)} onOfficeUpdated={handleOfficeUpdated} />
+      )}
+      {driversModalOpen && (
+        <EditDriversModal
+          drivers={drivers}
+          onClose={() => setDriversModalOpen(false)}
+          onUpdateDriverField={handleUpdateDriverField}
+          onPersistDriver={handlePersistDriver}
+          onDeleteDriver={handleDeleteDriver}
+        />
       )}
     </div>
   )
