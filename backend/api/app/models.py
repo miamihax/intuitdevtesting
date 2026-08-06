@@ -84,3 +84,12 @@ class ConfirmImportRequest(BaseModel):
     time_window_start: str = "09:00"
     time_window_end: str = "17:00"
     case_count: int = 0
+
+
+class OfficeLocation(BaseModel):
+    address: str | None = None  # None until explicitly set — coordinates still have a default
+    coordinates: Coordinates
+
+
+class SetOfficeRequest(BaseModel):
+    address: str

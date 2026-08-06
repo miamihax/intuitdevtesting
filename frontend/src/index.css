@@ -496,6 +496,15 @@ body {
   gap: 0.75rem;
 }
 
+.office-settings-body {
+  margin: 0.75rem 1rem 1rem;
+}
+
+.office-current-coordinates {
+  font-size: 0.8rem;
+  color: #666;
+}
+
 .import-review-row .time-window-cell {
   flex: 1;
 }

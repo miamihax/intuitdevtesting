@@ -68,3 +68,8 @@ export interface ConfirmImportFields {
   time_window_end: string
   case_count: number
 }
+
+export interface OfficeLocation {
+  address: string | null
+  coordinates: Coordinates
+}

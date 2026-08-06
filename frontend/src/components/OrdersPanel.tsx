@@ -16,6 +16,7 @@ interface OrdersPanelProps {
   routes: DriverRoute[]
   loading: boolean
   onImportOrders: () => void
+  onEditOffice: () => void
   onOptimize: (storeIds?: string[]) => void
   onUpdateStore: (storeId: string, patch: Partial<Store>) => void
   selectedOrderIds: string[]
@@ -48,6 +49,7 @@ export default function OrdersPanel({
   routes,
   loading,
   onImportOrders,
+  onEditOffice,
   onOptimize,
   onUpdateStore,
   selectedOrderIds,
@@ -112,6 +114,7 @@ export default function OrdersPanel({
 
       <div className="orders-panel-actions">
         <button onClick={onImportOrders}>Import Orders</button>
+        <button onClick={onEditOffice}>Office Location</button>
         <div className="optimize-dropdown" ref={optimizeMenuRef}>
           <button onClick={() => setOptimizeMenuOpen((o) => !o)} disabled={loading}>
             {loading ? 'Optimizing…' : 'Optimize Routes'} <span className="dropdown-caret">▾</span>

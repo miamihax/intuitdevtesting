@@ -1,4 +1,4 @@
-import type { ConfirmImportFields, Driver, OptimizeResponse, PendingImport, Store } from '../types'
+import type { ConfirmImportFields, Driver, OfficeLocation, OptimizeResponse, PendingImport, Store } from '../types'
 
 // Strip any trailing slash so a misconfigured env var (e.g. "https://host.com/")
 // can't turn "${API_BASE_URL}/api/..." into a double slash — Vercel redirects
@@ -50,4 +50,7 @@ export const api = {
     }),
   dismissImport: (pendingId: string) =>
     request<{ ok: boolean }>(`/api/imports/${pendingId}/dismiss`, { method: 'POST' }),
+  getOffice: () => request<OfficeLocation>('/api/office'),
+  setOffice: (address: string) =>
+    request<OfficeLocation>('/api/office', { method: 'PUT', body: JSON.stringify({ address }) }),
 }

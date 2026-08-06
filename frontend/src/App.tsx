@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { api } from './api/client'
 import ImportOrdersModal from './components/ImportOrdersModal'
 import MapView from './components/Map'
+import OfficeSettingsModal from './components/OfficeSettingsModal'
 import Sidebar from './components/Sidebar'
-import type { Driver, DriverRoute, Store } from './types'
+import type { Driver, DriverRoute, OfficeLocation, Store } from './types'
 
 export default function App() {
   const [stores, setStores] = useState<Store[]>([])
@@ -15,6 +16,7 @@ export default function App() {
   // Shared between the map (clicking dots) and the orders table (clicking rows).
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([])
   const [importModalOpen, setImportModalOpen] = useState(false)
+  const [officeModalOpen, setOfficeModalOpen] = useState(false)
 
   useEffect(() => {
     Promise.all([api.getStores(), api.getDrivers()])
@@ -61,6 +63,12 @@ export default function App() {
     setStores((prev) => [...prev, store])
   }
 
+  const handleOfficeUpdated = (office: OfficeLocation) => {
+    // Every driver shares the same depot — keep the local list in sync with
+    // the backend so the map/route preview reflects the move immediately.
+    setDrivers((prev) => prev.map((driver) => ({ ...driver, depot: office.coordinates })))
+  }
+
   return (
     <div className="app-shell">
       <Sidebar
@@ -81,10 +89,14 @@ export default function App() {
         onOptimize={handleOptimize}
         onUpdateStore={handleUpdateStore}
         onImportOrders={() => setImportModalOpen(true)}
+        onEditOffice={() => setOfficeModalOpen(true)}
       />
       {error && <div className="error-banner">{error}</div>}
       {importModalOpen && (
         <ImportOrdersModal onClose={() => setImportModalOpen(false)} onStoreImported={handleStoreImported} />
+      )}
+      {officeModalOpen && (
+        <OfficeSettingsModal onClose={() => setOfficeModalOpen(false)} onOfficeUpdated={handleOfficeUpdated} />
       )}
     </div>
   )
