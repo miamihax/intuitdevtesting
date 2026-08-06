@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, HTTPException
 
-from ..data import DRIVERS
+from ..data import DRIVERS, save_drivers
 from ..models import Driver, UpdateDriverRequest
 from ..office import get_office
 
@@ -27,6 +27,7 @@ def create_driver(request: UpdateDriverRequest) -> Driver:
         shift_end=request.shift_end,
     )
     DRIVERS.append(driver)
+    save_drivers()
     return driver
 
 
@@ -40,6 +41,7 @@ def update_driver(driver_id: str, request: UpdateDriverRequest) -> Driver:
     driver.vehicle_capacity_cases = request.vehicle_capacity_cases
     driver.shift_start = request.shift_start
     driver.shift_end = request.shift_end
+    save_drivers()
     return driver
 
 
@@ -47,4 +49,5 @@ def update_driver(driver_id: str, request: UpdateDriverRequest) -> Driver:
 def delete_driver(driver_id: str) -> dict[str, bool]:
     driver = _find(driver_id)
     DRIVERS.remove(driver)
+    save_drivers()
     return {"ok": True}

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from ..data import DRIVERS
+from ..data import DRIVERS, save_drivers
 from ..geocode import geocode_address
 from ..models import OfficeLocation, SetOfficeRequest
 from ..office import get_office, set_office
@@ -25,5 +25,6 @@ def update_office(request: SetOfficeRequest) -> OfficeLocation:
     # optimizer (which reads driver.depot directly) picks it up immediately.
     for driver in DRIVERS:
         driver.depot = coordinates
+    save_drivers()
 
     return office
