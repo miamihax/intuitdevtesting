@@ -9,8 +9,8 @@ from .geocode import geocode_address
 from .import_store import PendingImport, add_pending, update_pending
 from .invoice_parser import parse_invoice_fields
 from .ocr import extract_text
+from .paths import DATA_DIR
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 INCOMING_DIR = DATA_DIR / "incoming"
 PROCESSED_DIR = DATA_DIR / "processed"
 

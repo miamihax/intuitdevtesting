@@ -1,11 +1,13 @@
 import json
 import threading
-from pathlib import Path
 from typing import TypedDict
 
-# Lives under backend/data/, which is entirely gitignored (see .gitignore) —
-# same place the OCR import pipeline keeps its uploaded/processed files.
-_TOKENS_PATH = Path(__file__).resolve().parent.parent / "data" / "qbo_tokens.json"
+from .paths import DATA_DIR
+
+# Lives alongside the OCR import pipeline's uploaded/processed files — see
+# app/paths.py for why the actual directory differs between local dev and
+# Vercel (whose filesystem is read-only outside /tmp).
+_TOKENS_PATH = DATA_DIR / "qbo_tokens.json"
 _lock = threading.Lock()
 
 

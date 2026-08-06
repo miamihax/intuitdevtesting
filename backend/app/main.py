@@ -13,10 +13,16 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    observer = start_watcher()
+    # On serverless platforms (e.g. Vercel) a background filesystem watcher
+    # may not be able to start at all — that must not take the whole API down.
+    try:
+        observer = start_watcher()
+    except OSError:
+        observer = None
     yield
-    observer.stop()
-    observer.join()
+    if observer is not None:
+        observer.stop()
+        observer.join()
 
 
 app = FastAPI(title="OptiRoute API", lifespan=lifespan)
