@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from ..data import STORES
+from ..data import STORES, save_stores
 from ..geocode import geocode_address
 from ..import_store import PendingImport, add_pending, get_pending, list_pending, pop_pending
 from ..import_watcher import INCOMING_DIR
@@ -62,6 +62,7 @@ def confirm_import(pending_id: str, request: ConfirmImportRequest) -> Store:
         case_count=request.case_count,
     )
     STORES.append(store)
+    save_stores()
     return store
 
 

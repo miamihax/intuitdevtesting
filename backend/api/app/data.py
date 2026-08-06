@@ -5,15 +5,27 @@ from .models import Driver, Store
 from .office import get_office
 from .paths import DATA_DIR
 
-# No example orders — populated via "Import Orders" / "Edit Orders" once
-# real data exists. Add Store(...) entries here (or wire up a real data
-# source) when you're ready to seed it again.
-STORES: list[Store] = []
-
-# Persisted the same way office.py persists its state, so drivers survive a
-# backend restart or page refresh instead of resetting to the seed list.
+# Persisted the same way office.py persists its state, so confirmed orders
+# and drivers survive a backend restart or page refresh instead of resetting
+# (a Vercel cold start otherwise wipes them while the frontend still holds
+# stale IDs in memory, causing "Unknown store ids" on the next optimize call).
+_STORES_PATH = DATA_DIR / "stores.json"
 _DRIVERS_PATH = DATA_DIR / "drivers.json"
 _lock = threading.Lock()
+
+
+def save_stores() -> None:
+    with _lock:
+        _STORES_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _STORES_PATH.write_text(json.dumps([store.model_dump() for store in STORES]))
+
+
+if _STORES_PATH.exists():
+    STORES: list[Store] = [Store.model_validate(s) for s in json.loads(_STORES_PATH.read_text())]
+else:
+    # No example orders — populated via "Import Orders" / "Edit Orders" once
+    # real data exists.
+    STORES = []
 
 
 def _default_drivers() -> list[Driver]:
