@@ -39,13 +39,11 @@ def callback(code: str, state: str, realmId: str) -> HTMLResponse:
     return HTMLResponse("<html><body><h3>QuickBooks connected — you can close this tab.</h3></body></html>")
 
 
-def _process_invoice_event(invoice_id: str, operation: str) -> None:
+def _upsert_pending_from_invoice(invoice_id: str, invoice: dict) -> PendingImport:
+    """Maps an already-fetched QBO invoice onto a PendingImport. Shared by the
+    webhook path (which fetches the invoice via OAuth) and the manual
+    import-invoice endpoint (which is handed the invoice JSON directly)."""
     pending_id = f"qbo-{invoice_id}"
-
-    if operation == "Delete":
-        pop_pending(pending_id)
-        return
-
     if get_pending(pending_id) is None:
         add_pending(
             PendingImport(
@@ -56,24 +54,60 @@ def _process_invoice_event(invoice_id: str, operation: str) -> None:
             )
         )
 
+    fields = qbo.invoice_to_pending_fields(invoice)
+    address = fields.get("address")
+    coordinates = geocode_address(address) if address else None
+    update_pending(
+        pending_id,
+        status="ready",
+        file_name=f"QuickBooks Invoice #{fields.get('invoice_number') or invoice_id}",
+        invoice_number=fields.get("invoice_number"),
+        name=fields.get("name"),
+        address=address,
+        coordinates=coordinates,
+        case_count=fields.get("case_count"),
+    )
+    pending = get_pending(pending_id)
+    assert pending is not None
+    return pending
+
+
+def _process_invoice_event(invoice_id: str, operation: str) -> None:
+    pending_id = f"qbo-{invoice_id}"
+
+    if operation == "Delete":
+        pop_pending(pending_id)
+        return
+
     try:
         invoice = qbo.fetch_invoice(invoice_id)
-        fields = qbo.invoice_to_pending_fields(invoice)
-        address = fields.get("address")
-        coordinates = geocode_address(address) if address else None
-        update_pending(
-            pending_id,
-            status="ready",
-            file_name=f"QuickBooks Invoice #{fields.get('invoice_number') or invoice_id}",
-            invoice_number=fields.get("invoice_number"),
-            name=fields.get("name"),
-            address=address,
-            coordinates=coordinates,
-            case_count=fields.get("case_count"),
-        )
+        _upsert_pending_from_invoice(invoice_id, invoice)
     except Exception as exc:  # a bad/unreachable invoice must not take down the webhook handler
         logger.exception("Failed to process QuickBooks invoice %s", invoice_id)
-        update_pending(pending_id, status="error", error=str(exc))
+        if get_pending(pending_id) is None:
+            add_pending(
+                PendingImport(
+                    id=pending_id,
+                    file_name=f"QuickBooks Invoice ({invoice_id})",
+                    source="quickbooks",
+                    status="error",
+                    error=str(exc),
+                )
+            )
+        else:
+            update_pending(pending_id, status="error", error=str(exc))
+
+
+@router.post("/import-invoice", response_model=PendingImport)
+def import_invoice(invoice: dict) -> PendingImport:
+    """Accepts a QuickBooks invoice JSON directly (e.g. fetched via the
+    QuickBooks MCP server) and drops it into the pending-imports queue —
+    the same destination the webhook path feeds, minus the OAuth round trip.
+    Useful for testing the pipeline without a full Intuit webhook setup."""
+    invoice_id = invoice.get("Id")
+    if not invoice_id:
+        raise HTTPException(status_code=422, detail='Invoice JSON is missing an "Id" field')
+    return _upsert_pending_from_invoice(invoice_id, invoice)
 
 
 @router.post("/webhook")
