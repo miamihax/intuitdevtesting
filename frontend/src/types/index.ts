@@ -73,3 +73,10 @@ export interface OfficeLocation {
   address: string | null
   coordinates: Coordinates
 }
+
+export interface UpdateDriverFields {
+  name: string
+  vehicle_capacity_cases: number
+  shift_start: string
+  shift_end: string
+}

@@ -93,3 +93,10 @@ class OfficeLocation(BaseModel):
 
 class SetOfficeRequest(BaseModel):
     address: str
+
+
+class UpdateDriverRequest(BaseModel):
+    name: str
+    vehicle_capacity_cases: int
+    shift_start: str
+    shift_end: str

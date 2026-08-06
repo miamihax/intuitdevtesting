@@ -1,4 +1,12 @@
-import type { ConfirmImportFields, Driver, OfficeLocation, OptimizeResponse, PendingImport, Store } from '../types'
+import type {
+  ConfirmImportFields,
+  Driver,
+  OfficeLocation,
+  OptimizeResponse,
+  PendingImport,
+  Store,
+  UpdateDriverFields,
+} from '../types'
 
 // Strip any trailing slash so a misconfigured env var (e.g. "https://host.com/")
 // can't turn "${API_BASE_URL}/api/..." into a double slash — Vercel redirects
@@ -53,4 +61,8 @@ export const api = {
   getOffice: () => request<OfficeLocation>('/api/office'),
   setOffice: (address: string) =>
     request<OfficeLocation>('/api/office', { method: 'PUT', body: JSON.stringify({ address }) }),
+  updateDriver: (driverId: string, fields: UpdateDriverFields) =>
+    request<Driver>(`/api/drivers/${driverId}`, { method: 'PUT', body: JSON.stringify(fields) }),
+  deleteDriver: (driverId: string) =>
+    request<{ ok: boolean }>(`/api/drivers/${driverId}`, { method: 'DELETE' }),
 }

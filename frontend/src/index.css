@@ -297,6 +297,70 @@ body {
   cursor: pointer;
 }
 
+.drivers-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.drivers-section-header h2 {
+  margin: 0;
+}
+
+.edit-drivers-button {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.driver-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.driver-edit-form label {
+  display: block;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.driver-edit-form input {
+  display: block;
+  width: 100%;
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.driver-edit-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.driver-edit-row .case-count-input {
+  width: 4.5rem;
+}
+
+.driver-edit-row .time-window-cell {
+  flex: 1;
+}
+
+.driver-edit-row .time-window-cell input {
+  display: inline-block;
+  width: auto;
+}
+
+.delete-driver-button {
+  align-self: flex-start;
+  color: #e63946;
+  border-color: #e63946;
+}
+
 .driver-checkbox input {
   margin: 0;
 }

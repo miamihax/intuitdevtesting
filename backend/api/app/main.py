@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .import_watcher import start_watcher
-from .routers import agent, imports, office, quickbooks, routes
+from .routers import agent, drivers, imports, office, quickbooks, routes
 
 load_dotenv()
 
@@ -40,6 +40,7 @@ app.include_router(agent.router)
 app.include_router(imports.router)
 app.include_router(quickbooks.router)
 app.include_router(office.router)
+app.include_router(drivers.router)
 
 
 @app.get("/api/health")

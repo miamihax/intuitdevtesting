@@ -4,7 +4,7 @@ import ImportOrdersModal from './components/ImportOrdersModal'
 import MapView from './components/Map'
 import OfficeSettingsModal from './components/OfficeSettingsModal'
 import Sidebar from './components/Sidebar'
-import type { Driver, DriverRoute, OfficeLocation, Store } from './types'
+import type { Driver, DriverRoute, OfficeLocation, Store, UpdateDriverFields } from './types'
 
 export default function App() {
   const [stores, setStores] = useState<Store[]>([])
@@ -72,6 +72,33 @@ export default function App() {
     setDrivers((prev) => prev.map((driver) => ({ ...driver, depot: updated.coordinates })))
   }
 
+  const handleUpdateDriverField = (driverId: string, patch: Partial<Driver>) => {
+    setDrivers((prev) => prev.map((driver) => (driver.id === driverId ? { ...driver, ...patch } : driver)))
+  }
+
+  // Persists whatever's currently in local state for this driver — called on
+  // blur rather than on every keystroke, so editing a name doesn't fire a
+  // request per character.
+  const handlePersistDriver = (driver: Driver) => {
+    const fields: UpdateDriverFields = {
+      name: driver.name,
+      vehicle_capacity_cases: driver.vehicle_capacity_cases,
+      shift_start: driver.shift_start,
+      shift_end: driver.shift_end,
+    }
+    api.updateDriver(driver.id, fields).catch((e: Error) => setError(e.message))
+  }
+
+  const handleDeleteDriver = (driverId: string) => {
+    api
+      .deleteDriver(driverId)
+      .then(() => {
+        setDrivers((prev) => prev.filter((driver) => driver.id !== driverId))
+        setSelectedDriverIds((prev) => prev.filter((id) => id !== driverId))
+      })
+      .catch((e: Error) => setError(e.message))
+  }
+
   return (
     <div className="app-shell">
       <Sidebar
@@ -80,6 +107,9 @@ export default function App() {
         routes={routes}
         selectedDriverIds={selectedDriverIds}
         onToggleDriver={handleToggleDriver}
+        onUpdateDriverField={handleUpdateDriverField}
+        onPersistDriver={handlePersistDriver}
+        onDeleteDriver={handleDeleteDriver}
       />
       <MapView
         stores={stores}
