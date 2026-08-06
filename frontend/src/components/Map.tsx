@@ -18,7 +18,6 @@ interface MapProps {
   onOptimize: (storeIds?: string[]) => void
   onUpdateStore: (storeId: string, patch: Partial<Store>) => void
   onImportOrders: () => void
-  center?: [number, number]
 }
 
 export default function MapView({
@@ -33,12 +32,13 @@ export default function MapView({
   onOptimize,
   onUpdateStore,
   onImportOrders,
-  center = [-87.6298, 41.8781],
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const markersRef = useRef<Marker[]>([])
   const officeMarkerRef = useRef<Marker | null>(null)
+  const initializedRef = useRef(false)
+  const resizeObserverRef = useRef<ResizeObserver | null>(null)
 
   // Only the checked drivers' routes are shown; an empty selection shows everyone.
   const visibleRoutes = useMemo(
@@ -54,15 +54,19 @@ export default function MapView({
     return ROUTE_COLORS[(index === -1 ? 0 : index) % ROUTE_COLORS.length]
   }
 
+  // Waits for the office location to load before creating the map, so it
+  // opens centered there instead of a hardcoded fallback point — then never
+  // re-centers on later office edits (initializedRef makes this run once).
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return
+    if (!containerRef.current || initializedRef.current || !office) return
+    initializedRef.current = true
 
     mapRef.current = new maplibregl.Map({
       container: containerRef.current,
       // Free, no-API-key vector tile style built on OpenStreetMap data.
       // Swap for MapTiler/Stadia Maps/a self-hosted style for production traffic.
       style: 'https://tiles.openfreemap.org/styles/liberty',
-      center,
+      center: [office.coordinates.lng, office.coordinates.lat],
       zoom: 11,
     })
 
@@ -72,9 +76,15 @@ export default function MapView({
     // this container without firing a window resize event — keep the map in sync.
     const resizeObserver = new ResizeObserver(() => mapRef.current?.resize())
     resizeObserver.observe(containerRef.current)
+    resizeObserverRef.current = resizeObserver
+  }, [office])
 
+  // Separate from the effect above so this only runs on actual unmount, not
+  // on every office update (which would otherwise destroy and recreate the
+  // whole map each time the office address changes).
+  useEffect(() => {
     return () => {
-      resizeObserver.disconnect()
+      resizeObserverRef.current?.disconnect()
       mapRef.current?.remove()
       mapRef.current = null
     }
