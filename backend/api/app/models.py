@@ -14,6 +14,7 @@ class Store(BaseModel):
     time_window_start: str  # "09:00"
     time_window_end: str  # "17:00"
     case_count: int  # cases of liquor to deliver
+    approximate_location: bool = False  # True if geocoding fell back to a ZIP-code centroid
 
 
 class Driver(BaseModel):
@@ -74,6 +75,7 @@ class PendingImport(BaseModel):
     name: str | None = None  # OCR-extracted or QuickBooks customer/location name
     address: str | None = None
     coordinates: Coordinates | None = None  # geocoded from `address`, if found
+    approximate_location: bool = False  # True if geocoding fell back to a ZIP-code centroid
     case_count: int | None = None  # pre-filled from QuickBooks line-item quantities, if available
     time_window_start: str | None = None  # OCR-extracted from a delivery note, if present
     time_window_end: str | None = None

@@ -11,6 +11,7 @@ export interface Store {
   time_window_start: string
   time_window_end: string
   case_count: number
+  approximate_location: boolean
 }
 
 export interface Driver {
@@ -57,6 +58,7 @@ export interface PendingImport {
   name: string | null
   address: string | null
   coordinates: Coordinates | null
+  approximate_location: boolean
   case_count: number | null
   time_window_start: string | null
   time_window_end: string | null

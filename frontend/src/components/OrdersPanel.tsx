@@ -5,6 +5,7 @@ interface OrderRow {
   orderId: string
   location: string
   address: string
+  approximateLocation: boolean
   timeWindowStart: string
   timeWindowEnd: string
   caseCount: number
@@ -36,6 +37,7 @@ function buildRows(stores: Store[], routes: DriverRoute[]): OrderRow[] {
     orderId: store.id,
     location: store.name,
     address: store.address,
+    approximateLocation: store.approximate_location,
     timeWindowStart: store.time_window_start,
     timeWindowEnd: store.time_window_end,
     caseCount: store.case_count,
@@ -197,7 +199,17 @@ export default function OrdersPanel({
                   >
                     <td>{row.orderId}</td>
                     <td>{row.location}</td>
-                    <td>{row.address}</td>
+                    <td>
+                      {row.address}
+                      {row.approximateLocation && (
+                        <span
+                          className="approximate-location-flag"
+                          title="Exact address not found — located to the ZIP code area only"
+                        >
+                          {' '}⚠
+                        </span>
+                      )}
+                    </td>
                     <td>
                       {row.timeWindowStart} - {row.timeWindowEnd}
                     </td>

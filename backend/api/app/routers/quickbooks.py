@@ -56,7 +56,7 @@ def _upsert_pending_from_invoice(invoice_id: str, invoice: dict) -> PendingImpor
 
     fields = qbo.invoice_to_pending_fields(invoice)
     address = fields.get("address")
-    coordinates = geocode_address(address) if address else None
+    geocode_result = geocode_address(address) if address else None
     update_pending(
         pending_id,
         status="ready",
@@ -64,7 +64,8 @@ def _upsert_pending_from_invoice(invoice_id: str, invoice: dict) -> PendingImpor
         invoice_number=fields.get("invoice_number"),
         name=fields.get("name"),
         address=address,
-        coordinates=coordinates,
+        coordinates=geocode_result.coordinates if geocode_result else None,
+        approximate_location=geocode_result.approximate if geocode_result else False,
         case_count=fields.get("case_count"),
     )
     pending = get_pending(pending_id)

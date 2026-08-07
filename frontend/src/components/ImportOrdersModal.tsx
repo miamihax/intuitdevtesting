@@ -167,6 +167,11 @@ export default function ImportOrdersModal({ onClose, onStoreImported }: ImportOr
                       onChange={(e) => handleFieldChange(p, { address: e.target.value })}
                     />
                   </label>
+                  {p.approximate_location && (
+                    <div className="import-approximate-warning">
+                      ⚠ Exact address not found — located to the ZIP code area only. Verify or adjust it.
+                    </div>
+                  )}
                   <div className="import-review-row">
                     <label className="time-window-cell">
                       Window

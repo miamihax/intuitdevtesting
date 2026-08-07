@@ -650,6 +650,17 @@ body {
   margin-top: 0.4rem;
 }
 
+.import-approximate-warning {
+  color: #b3690a;
+  font-size: 0.75rem;
+  margin-top: 0.3rem;
+}
+
+.approximate-location-flag {
+  color: #b3690a;
+  cursor: help;
+}
+
 .error-banner {
   position: absolute;
   bottom: 1rem;

@@ -39,14 +39,15 @@ class IncomingInvoiceHandler(FileSystemEventHandler):
             text = extract_text(path)
             fields = parse_invoice_fields(text)
             address = fields.get("address")
-            coordinates = geocode_address(address) if address else None
+            geocode_result = geocode_address(address) if address else None
             update_pending(
                 pending_id,
                 status="ready",
                 invoice_number=fields.get("invoice_number"),
                 name=fields.get("location"),
                 address=address,
-                coordinates=coordinates,
+                coordinates=geocode_result.coordinates if geocode_result else None,
+                approximate_location=geocode_result.approximate if geocode_result else False,
                 case_count=fields.get("case_count"),
                 time_window_start=fields.get("time_window_start"),
                 time_window_end=fields.get("time_window_end"),

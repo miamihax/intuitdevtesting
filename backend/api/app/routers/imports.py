@@ -40,11 +40,13 @@ def confirm_import(pending_id: str, request: ConfirmImportRequest) -> Store:
     # Reuse the geocode captured during OCR unless the address was edited.
     if pending.address == request.address and pending.coordinates is not None:
         coordinates = pending.coordinates
+        approximate_location = pending.approximate_location
     else:
-        coordinates = geocode_address(request.address)
-
-    if coordinates is None:
-        raise HTTPException(status_code=422, detail="Could not locate that address — check it and try again")
+        geocode_result = geocode_address(request.address)
+        if geocode_result is None:
+            raise HTTPException(status_code=422, detail="Could not locate that address — check it and try again")
+        coordinates = geocode_result.coordinates
+        approximate_location = geocode_result.approximate
 
     pop_pending(pending_id)
 
@@ -57,6 +59,7 @@ def confirm_import(pending_id: str, request: ConfirmImportRequest) -> Store:
         name=request.name,
         address=request.address,
         coordinates=coordinates,
+        approximate_location=approximate_location,
         time_window_start=request.time_window_start,
         time_window_end=request.time_window_end,
         case_count=request.case_count,
