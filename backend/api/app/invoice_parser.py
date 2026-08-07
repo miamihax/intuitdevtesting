@@ -1,7 +1,10 @@
 import re
 
+# The captured token must contain at least one digit (via lookahead) so a
+# bare "Invoice" document title followed by an unrelated word (e.g. a
+# "Date" label on the next line) doesn't get mistaken for the number.
 _INVOICE_NUMBER_RE = re.compile(
-    r"invoice\s*(?:number|no\.?|#)?\s*[:#]?\s*([A-Z0-9][A-Z0-9\-.]{2,})",
+    r"invoice\s*(?:number|no\.?|#)?\s*[:#]?\s*(?=[A-Z0-9\-.]*\d)([A-Z0-9][A-Z0-9\-.]{2,})",
     re.IGNORECASE,
 )
 # Anchored to the start of a line and requires a ":"/"-" delimiter, so a
