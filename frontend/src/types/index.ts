@@ -58,6 +58,8 @@ export interface PendingImport {
   address: string | null
   coordinates: Coordinates | null
   case_count: number | null
+  time_window_start: string | null
+  time_window_end: string | null
   error: string | null
 }
 

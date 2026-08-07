@@ -46,6 +46,15 @@ _ADDRESS_RE = re.compile(
 # rather than trying to parse a line-item table (OCR text rarely preserves
 # clean column alignment).
 _CASE_QTY_RE = re.compile(r"(\d+)\s*/?\s*CS\b", re.IGNORECASE)
+# The customer's phone number line inside the Ship To box (e.g.
+# "PH: 201-840-0777"), used only as an anchor to find the delivery-window
+# note conventionally scrawled on the line right beneath it.
+_PHONE_LINE_RE = re.compile(
+    r"^[ \t]*(?:ph|phone|tel)\.?\s*#?[ \t]*[:\-]?[ \t]*[\d()\-.\s]{7,}$",
+    re.IGNORECASE | re.MULTILINE,
+)
+# Clock times within a delivery-window note — "2PM", "10:30 am", etc.
+_TIME_RE = re.compile(r"(\d{1,2})(?::(\d{2}))?\s*([AaPp])\.?[Mm]\.?")
 
 
 def parse_invoice_fields(text: str) -> dict[str, str | int | None]:
@@ -64,12 +73,15 @@ def parse_invoice_fields(text: str) -> dict[str, str | int | None]:
     # after the Ship To box in the raw text, would otherwise pick the wrong
     # address.
     address_match = last_address_match
+    time_window_start: str | None = None
+    time_window_end: str | None = None
     ship_to_anchor = _SHIP_TO_ANCHOR_RE.search(text)
     if ship_to_anchor:
         window = text[ship_to_anchor.end() : ship_to_anchor.end() + _SHIP_TO_WINDOW]
         window_match = _ADDRESS_RE.search(window)
         if window_match:
             address_match = window_match
+        time_window_start, time_window_end = _extract_delivery_window(window)
 
     address = re.sub(r"\s+", " ", address_match.group(0)).strip() if address_match else None
 
@@ -78,7 +90,40 @@ def parse_invoice_fields(text: str) -> dict[str, str | int | None]:
         "address": address,
         "location": _extract_location(text, last_address_match),
         "case_count": sum(int(n) for n in case_matches) if case_matches else None,
+        "time_window_start": time_window_start,
+        "time_window_end": time_window_end,
     }
+
+
+def _extract_delivery_window(window: str) -> tuple[str | None, str | None]:
+    phone_match = _PHONE_LINE_RE.search(window)
+    if phone_match is None:
+        return None, None
+    for line in window[phone_match.end() :].splitlines():
+        line = line.strip()
+        if line:
+            return _parse_delivery_window(line)
+    return None, None
+
+
+def _parse_delivery_window(note: str) -> tuple[str | None, str | None]:
+    times = [_to_24h(hour, minute, meridiem) for hour, minute, meridiem in _TIME_RE.findall(note)]
+    if not times:
+        return None, None
+    if len(times) >= 2:
+        return times[0], times[1]
+    if re.search(r"\bafter\b", note, re.IGNORECASE):
+        return times[0], None
+    # A single time with no "after" ("DELIVER BEFORE 2PM!!", or just "2PM")
+    # reads as a delivery deadline, not an earliest-arrival time.
+    return None, times[0]
+
+
+def _to_24h(hour: str, minute: str, meridiem: str) -> str:
+    h = int(hour) % 12
+    if meridiem.lower() == "p":
+        h += 12
+    return f"{h:02d}:{minute or '00'}"
 
 
 def _extract_location(text: str, address_match: re.Match[str] | None) -> str | None:

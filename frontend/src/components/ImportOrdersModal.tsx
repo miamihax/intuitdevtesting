@@ -47,6 +47,8 @@ export default function ImportOrdersModal({ onClose, onStoreImported }: ImportOr
       name: p.name ?? '',
       address: p.address ?? '',
       case_count: p.case_count ?? DEFAULT_FIELDS.case_count,
+      time_window_start: p.time_window_start ?? DEFAULT_FIELDS.time_window_start,
+      time_window_end: p.time_window_end ?? DEFAULT_FIELDS.time_window_end,
     }
 
   const handleFieldChange = (p: PendingImport, patch: Partial<ConfirmImportFields>) => {

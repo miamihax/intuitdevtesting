@@ -75,6 +75,8 @@ class PendingImport(BaseModel):
     address: str | None = None
     coordinates: Coordinates | None = None  # geocoded from `address`, if found
     case_count: int | None = None  # pre-filled from QuickBooks line-item quantities, if available
+    time_window_start: str | None = None  # OCR-extracted from a delivery note, if present
+    time_window_end: str | None = None
     error: str | None = None
 
 
