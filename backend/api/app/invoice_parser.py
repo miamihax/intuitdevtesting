@@ -41,11 +41,13 @@ _SHIP_TO_WINDOW = 300
 _ADDRESS_RE = re.compile(
     r"\d{1,6}\s+[A-Za-z0-9.,'#&\-\s]+?,?\s*[A-Za-z0-9.,'#&\-\s]+?,?\s*[A-Z]{2}\s*\d{5}(?:-\d{4})?",
 )
-# Case quantities on beverage distributor invoices are conventionally
-# written per line item as "6/CS", "12 CS", etc. — sum every match found
-# rather than trying to parse a line-item table (OCR text rarely preserves
-# clean column alignment).
-_CASE_QTY_RE = re.compile(r"(\d+)\s*/?\s*CS\b", re.IGNORECASE)
+# Each line item's "N/CS" (e.g. "6/CS") states the *pack size* -- how many
+# bottles per case -- not how many cases were ordered. The actual ordered
+# quantity is the invoice's Quantity column, which text extraction runs
+# together directly against that same "CS" with no separator (e.g.
+# "6/CS1 120.00 120.00" -- pack size 6/case, quantity ordered 1). Sum the
+# digits immediately following each "CS" rather than the pack size itself.
+_CASE_QTY_RE = re.compile(r"CS(\d+)", re.IGNORECASE)
 # The customer's phone number line inside the Ship To box (e.g.
 # "PH: 201-840-0777"), used only as an anchor to find the delivery-window
 # note conventionally scrawled on the line right beneath it.
