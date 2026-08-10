@@ -2,30 +2,13 @@ import uuid
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from ..data import STORES, save_stores
 from ..geocode import geocode_address
 from ..import_store import PendingImport, add_pending, get_pending, list_pending, pop_pending
 from ..import_watcher import INCOMING_DIR
 from ..models import ConfirmImportRequest, Store
+from ..orders import add_store
 
 router = APIRouter(prefix="/api/imports")
-
-
-def _unique_store_id(invoice_number: str | None) -> str:
-    # Prefer the invoice number as the order ID so it's traceable back to
-    # its source document -- fall back to a random ID when one wasn't
-    # extracted. Since store IDs must be unique (used for lookups, edits,
-    # and deletes), disambiguate a colliding invoice number (e.g. the same
-    # invoice re-uploaded, or two distributors reusing the same number)
-    # instead of silently overwriting an existing order with the same ID.
-    base = invoice_number or f"import-{uuid.uuid4().hex[:8]}"
-    existing_ids = {store.id for store in STORES}
-    if base not in existing_ids:
-        return base
-    suffix = 2
-    while f"{base}-{suffix}" in existing_ids:
-        suffix += 1
-    return f"{base}-{suffix}"
 
 
 @router.post("/upload")
@@ -67,10 +50,8 @@ def confirm_import(pending_id: str, request: ConfirmImportRequest) -> Store:
 
     pop_pending(pending_id)
 
-    store_id = _unique_store_id(pending.invoice_number)
-
-    store = Store(
-        id=store_id,
+    return add_store(
+        invoice_number=pending.invoice_number,
         name=request.name,
         address=request.address,
         coordinates=coordinates,
@@ -79,9 +60,6 @@ def confirm_import(pending_id: str, request: ConfirmImportRequest) -> Store:
         time_window_end=request.time_window_end,
         case_count=request.case_count,
     )
-    STORES.append(store)
-    save_stores()
-    return store
 
 
 @router.post("/{pending_id}/dismiss")

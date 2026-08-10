@@ -99,6 +99,14 @@ class SetOfficeRequest(BaseModel):
     address: str
 
 
+class Settings(BaseModel):
+    # When set, imports (upload/OCR) skip manual review and are confirmed
+    # into an order automatically as soon as they finish processing --
+    # only when enough was extracted to do so (name, address, and a
+    # geocode); anything short of that still falls back to manual review.
+    auto_add_imports: bool = False
+
+
 class UpdateDriverRequest(BaseModel):
     name: str
     vehicle_capacity_cases: int

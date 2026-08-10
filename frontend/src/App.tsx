@@ -33,6 +33,25 @@ export default function App() {
       .catch((e: Error) => setError(e.message))
   }, [])
 
+  // Orders can appear server-side without any click here (auto-add on
+  // import — see Settings). Poll for ones we don't know about yet, merging
+  // by ID only so it never clobbers a store already loaded locally.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      api
+        .getStores()
+        .then((serverStores) => {
+          setStores((prev) => {
+            const knownIds = new Set(prev.map((s) => s.id))
+            const newOnes = serverStores.filter((s) => !knownIds.has(s.id))
+            return newOnes.length > 0 ? [...prev, ...newOnes] : prev
+          })
+        })
+        .catch(() => {})
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [])
+
   const handleOptimize = (storeIds?: string[]) => {
     setLoading(true)
     setError(null)

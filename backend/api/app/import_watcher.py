@@ -6,10 +6,12 @@ from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 from .geocode import geocode_address
-from .import_store import PendingImport, add_pending, update_pending
+from .import_store import PendingImport, add_pending, pop_pending, update_pending
 from .invoice_parser import parse_invoice_fields
 from .ocr import extract_text
+from .orders import add_store
 from .paths import DATA_DIR
+from .settings_store import get_settings
 
 INCOMING_DIR = DATA_DIR / "incoming"
 PROCESSED_DIR = DATA_DIR / "processed"
@@ -39,19 +41,38 @@ class IncomingInvoiceHandler(FileSystemEventHandler):
             text = extract_text(path)
             fields = parse_invoice_fields(text)
             address = fields.get("address")
+            name = fields.get("location")
             geocode_result = geocode_address(address) if address else None
-            update_pending(
-                pending_id,
-                status="ready",
-                invoice_number=fields.get("invoice_number"),
-                name=fields.get("location"),
-                address=address,
-                coordinates=geocode_result.coordinates if geocode_result else None,
-                approximate_location=geocode_result.approximate if geocode_result else False,
-                case_count=fields.get("case_count"),
-                time_window_start=fields.get("time_window_start"),
-                time_window_end=fields.get("time_window_end"),
-            )
+
+            # Auto-add only fires when OCR extracted enough to stand on its
+            # own (a name, an address, and a successful geocode) -- anything
+            # short of that still needs a human to fill the gap, so it falls
+            # through to the normal "ready for review" pending card.
+            if get_settings().auto_add_imports and name and address and geocode_result is not None:
+                add_store(
+                    invoice_number=fields.get("invoice_number"),
+                    name=name,
+                    address=address,
+                    coordinates=geocode_result.coordinates,
+                    approximate_location=geocode_result.approximate,
+                    time_window_start=fields.get("time_window_start"),
+                    time_window_end=fields.get("time_window_end"),
+                    case_count=fields.get("case_count"),
+                )
+                pop_pending(pending_id)
+            else:
+                update_pending(
+                    pending_id,
+                    status="ready",
+                    invoice_number=fields.get("invoice_number"),
+                    name=name,
+                    address=address,
+                    coordinates=geocode_result.coordinates if geocode_result else None,
+                    approximate_location=geocode_result.approximate if geocode_result else False,
+                    case_count=fields.get("case_count"),
+                    time_window_start=fields.get("time_window_start"),
+                    time_window_end=fields.get("time_window_end"),
+                )
         except Exception as exc:  # a bad file must not take down the watcher thread
             update_pending(pending_id, status="error", error=str(exc))
         finally:

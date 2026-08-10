@@ -4,6 +4,7 @@ import type {
   OfficeLocation,
   OptimizeResponse,
   PendingImport,
+  Settings,
   Store,
   UpdateDriverFields,
 } from '../types'
@@ -68,4 +69,7 @@ export const api = {
     request<Driver>(`/api/drivers/${driverId}`, { method: 'PUT', body: JSON.stringify(fields) }),
   deleteDriver: (driverId: string) =>
     request<{ ok: boolean }>(`/api/drivers/${driverId}`, { method: 'DELETE' }),
+  getSettings: () => request<Settings>('/api/settings'),
+  updateSettings: (settings: Settings) =>
+    request<Settings>('/api/settings', { method: 'PUT', body: JSON.stringify(settings) }),
 }

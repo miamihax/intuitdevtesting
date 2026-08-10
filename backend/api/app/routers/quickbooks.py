@@ -7,7 +7,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from .. import quickbooks as qbo
 from ..geocode import geocode_address
 from ..import_store import PendingImport, add_pending, get_pending, pop_pending, update_pending
+from ..models import Store
+from ..orders import add_store
 from ..qbo_tokens import load_tokens
+from ..settings_store import get_settings
 
 router = APIRouter(prefix="/api/quickbooks")
 logger = logging.getLogger(__name__)
@@ -39,10 +42,12 @@ def callback(code: str, state: str, realmId: str) -> HTMLResponse:
     return HTMLResponse("<html><body><h3>QuickBooks connected — you can close this tab.</h3></body></html>")
 
 
-def _upsert_pending_from_invoice(invoice_id: str, invoice: dict) -> PendingImport:
-    """Maps an already-fetched QBO invoice onto a PendingImport. Shared by the
-    webhook path (which fetches the invoice via OAuth) and the manual
-    import-invoice endpoint (which is handed the invoice JSON directly)."""
+def _upsert_pending_from_invoice(invoice_id: str, invoice: dict) -> PendingImport | Store:
+    """Maps an already-fetched QBO invoice onto a PendingImport (or, when
+    auto-add is on and enough was extracted, straight into a confirmed
+    Store). Shared by the webhook path (which fetches the invoice via
+    OAuth) and the manual import-invoice endpoint (which is handed the
+    invoice JSON directly)."""
     pending_id = f"qbo-{invoice_id}"
     if get_pending(pending_id) is None:
         add_pending(
@@ -56,13 +61,32 @@ def _upsert_pending_from_invoice(invoice_id: str, invoice: dict) -> PendingImpor
 
     fields = qbo.invoice_to_pending_fields(invoice)
     address = fields.get("address")
+    name = fields.get("name")
     geocode_result = geocode_address(address) if address else None
+
+    # See import_watcher.py for the matching upload-side logic -- auto-add
+    # only fires when there's enough to stand on its own; anything short of
+    # that still needs a human, so it falls through to the pending queue.
+    if get_settings().auto_add_imports and name and address and geocode_result is not None:
+        store = add_store(
+            invoice_number=fields.get("invoice_number"),
+            name=name,
+            address=address,
+            coordinates=geocode_result.coordinates,
+            approximate_location=geocode_result.approximate,
+            time_window_start=None,
+            time_window_end=None,
+            case_count=fields.get("case_count"),
+        )
+        pop_pending(pending_id)
+        return store
+
     update_pending(
         pending_id,
         status="ready",
         file_name=f"QuickBooks Invoice #{fields.get('invoice_number') or invoice_id}",
         invoice_number=fields.get("invoice_number"),
-        name=fields.get("name"),
+        name=name,
         address=address,
         coordinates=geocode_result.coordinates if geocode_result else None,
         approximate_location=geocode_result.approximate if geocode_result else False,
@@ -99,8 +123,8 @@ def _process_invoice_event(invoice_id: str, operation: str) -> None:
             update_pending(pending_id, status="error", error=str(exc))
 
 
-@router.post("/import-invoice", response_model=PendingImport)
-def import_invoice(invoice: dict) -> PendingImport:
+@router.post("/import-invoice", response_model=PendingImport | Store)
+def import_invoice(invoice: dict) -> PendingImport | Store:
     """Accepts a QuickBooks invoice JSON directly (e.g. fetched via the
     QuickBooks MCP server) and drops it into the pending-imports queue —
     the same destination the webhook path feeds, minus the OAuth round trip.

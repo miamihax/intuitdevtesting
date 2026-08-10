@@ -84,3 +84,7 @@ export interface UpdateDriverFields {
   shift_start: string
   shift_end: string
 }
+
+export interface Settings {
+  auto_add_imports: boolean
+}
