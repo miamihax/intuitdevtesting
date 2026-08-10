@@ -87,4 +87,5 @@ export interface UpdateDriverFields {
 
 export interface Settings {
   auto_add_imports: boolean
+  distance_unit: 'mi' | 'km'
 }

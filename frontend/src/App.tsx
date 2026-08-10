@@ -6,7 +6,9 @@ import MapView from './components/Map'
 import OfficeSettingsModal from './components/OfficeSettingsModal'
 import SettingsModal from './components/SettingsModal'
 import Sidebar from './components/Sidebar'
-import type { Driver, DriverRoute, OfficeLocation, RouteStop, Store, UpdateDriverFields } from './types'
+import type { Driver, DriverRoute, OfficeLocation, RouteStop, Settings, Store, UpdateDriverFields } from './types'
+
+const DEFAULT_SETTINGS: Settings = { auto_add_imports: false, distance_unit: 'mi' }
 
 export default function App() {
   const [stores, setStores] = useState<Store[]>([])
@@ -22,13 +24,15 @@ export default function App() {
   const [driversModalOpen, setDriversModalOpen] = useState(false)
   const [settingsModalOpen, setSettingsModalOpen] = useState(false)
   const [office, setOffice] = useState<OfficeLocation | null>(null)
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
 
   useEffect(() => {
-    Promise.all([api.getStores(), api.getDrivers(), api.getOffice()])
-      .then(([storesData, driversData, officeData]) => {
+    Promise.all([api.getStores(), api.getDrivers(), api.getOffice(), api.getSettings()])
+      .then(([storesData, driversData, officeData, settingsData]) => {
         setStores(storesData)
         setDrivers(driversData)
         setOffice(officeData)
+        setSettings(settingsData)
       })
       .catch((e: Error) => setError(e.message))
   }, [])
@@ -160,6 +164,15 @@ export default function App() {
     setDrivers((prev) => [...prev, driver])
   }
 
+  const handleSettingsChange = (next: Settings) => {
+    const previous = settings
+    setSettings(next)
+    api.updateSettings(next).catch((e: Error) => {
+      setError(e.message)
+      setSettings(previous)
+    })
+  }
+
   const handleDeleteDriver = (driverId: string) => {
     api
       .deleteDriver(driverId)
@@ -181,6 +194,7 @@ export default function App() {
         onReorderStops={handleReorderStops}
         onEditDrivers={() => setDriversModalOpen(true)}
         onOpenSettings={() => setSettingsModalOpen(true)}
+        distanceUnit={settings.distance_unit}
       />
       <MapView
         stores={stores}
@@ -205,6 +219,8 @@ export default function App() {
       )}
       {settingsModalOpen && (
         <SettingsModal
+          settings={settings}
+          onSettingsChange={handleSettingsChange}
           onClose={() => setSettingsModalOpen(false)}
           onEditOffice={() => {
             setSettingsModalOpen(false)

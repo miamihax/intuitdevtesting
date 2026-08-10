@@ -1,35 +1,15 @@
-import { useEffect, useState } from 'react'
-import { api } from '../api/client'
+import type { Settings } from '../types'
 
 interface SettingsModalProps {
+  settings: Settings
+  onSettingsChange: (settings: Settings) => void
   onClose: () => void
   onEditOffice: () => void
 }
 
-export default function SettingsModal({ onClose, onEditOffice }: SettingsModalProps) {
-  const [autoAddImports, setAutoAddImports] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    api
-      .getSettings()
-      .then((settings) => setAutoAddImports(settings.auto_add_imports))
-      .catch((err: Error) => setError(err.message))
-  }, [])
-
-  const handleToggleAutoAddImports = () => {
-    const next = !autoAddImports
-    setAutoAddImports(next)
-    setSaving(true)
-    setError(null)
-    api
-      .updateSettings({ auto_add_imports: next })
-      .catch((err: Error) => {
-        setError(err.message)
-        setAutoAddImports(!next)
-      })
-      .finally(() => setSaving(false))
+export default function SettingsModal({ settings, onSettingsChange, onClose, onEditOffice }: SettingsModalProps) {
+  const updateSetting = (patch: Partial<Settings>) => {
+    onSettingsChange({ ...settings, ...patch })
   }
 
   return (
@@ -48,7 +28,11 @@ export default function SettingsModal({ onClose, onEditOffice }: SettingsModalPr
           </button>
 
           <label className="settings-toggle-item">
-            <input type="checkbox" checked={autoAddImports} onChange={handleToggleAutoAddImports} disabled={saving} />
+            <input
+              type="checkbox"
+              checked={settings.auto_add_imports}
+              onChange={() => updateSetting({ auto_add_imports: !settings.auto_add_imports })}
+            />
             <span>
               Automatically add imported orders
               <span className="settings-toggle-hint">
@@ -57,7 +41,26 @@ export default function SettingsModal({ onClose, onEditOffice }: SettingsModalPr
               </span>
             </span>
           </label>
-          {error && <div className="import-error">{error}</div>}
+
+          <div className="settings-menu-item settings-unit-row">
+            <span>Distance unit</span>
+            <div className="unit-toggle-buttons">
+              <button
+                type="button"
+                className={settings.distance_unit === 'mi' ? 'unit-toggle-active' : undefined}
+                onClick={() => updateSetting({ distance_unit: 'mi' })}
+              >
+                mi
+              </button>
+              <button
+                type="button"
+                className={settings.distance_unit === 'km' ? 'unit-toggle-active' : undefined}
+                onClick={() => updateSetting({ distance_unit: 'km' })}
+              >
+                km
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { Driver, DriverRoute, Store } from '../types'
 
+const KM_TO_MI = 0.621371
+
 // Converts a decimal minute value (e.g. 45.3) into "1h 45m 18s" instead of
 // showing the raw fraction — omits the hours part when there aren't any.
 function formatDuration(totalMinutes: number): string {
@@ -9,6 +11,13 @@ function formatDuration(totalMinutes: number): string {
   const minutes = Math.floor((totalSeconds % 3600) / 60)
   const seconds = totalSeconds % 60
   return hours > 0 ? `${hours}h ${minutes}m ${seconds}s` : `${minutes}m ${seconds}s`
+}
+
+// total_distance_km is always computed/transmitted in km (see backend
+// models.py) -- convert for display only, based on the user's preference.
+function formatDistance(km: number, unit: 'mi' | 'km'): string {
+  const value = unit === 'mi' ? km * KM_TO_MI : km
+  return `${value.toFixed(1)} ${unit}`
 }
 
 interface SidebarProps {
@@ -20,6 +29,7 @@ interface SidebarProps {
   onReorderStops: (driverId: string, storeIds: string[]) => void
   onEditDrivers: () => void
   onOpenSettings: () => void
+  distanceUnit: 'mi' | 'km'
 }
 
 export default function Sidebar({
@@ -31,6 +41,7 @@ export default function Sidebar({
   onReorderStops,
   onEditDrivers,
   onOpenSettings,
+  distanceUnit,
 }: SidebarProps) {
   // An empty selection means "all drivers" for stat purposes too.
   const visibleRoutes =
@@ -46,7 +57,12 @@ export default function Sidebar({
   const [dragState, setDragState] = useState<{ driverId: string; fromIndex: number } | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
-  const handleStopDragStart = (driverId: string, index: number) => {
+  const handleStopDragStart = (e: React.DragEvent, driverId: string, index: number) => {
+    // Firefox (and some Chrome versions) refuse to start a native HTML5 drag
+    // at all unless dataTransfer carries data — the payload itself is unused
+    // since reordering is driven by React state, not the drop event.
+    e.dataTransfer.setData('text/plain', String(index))
+    e.dataTransfer.effectAllowed = 'move'
     setDragState({ driverId, fromIndex: index })
   }
 
@@ -126,7 +142,7 @@ export default function Sidebar({
                 {route && (
                   <>
                     <div>
-                      {route.stops.length} stops · {route.total_distance_km} km
+                      {route.stops.length} stops · {formatDistance(route.total_distance_km, distanceUnit)}
                     </div>
                     <div>
                       Est. finish: <strong>{route.estimated_finish_time}</strong>
@@ -148,7 +164,7 @@ export default function Sidebar({
                               ? 'stop-drag-over'
                               : undefined
                           }
-                          onDragStart={() => handleStopDragStart(driver.id, index)}
+                          onDragStart={(e) => handleStopDragStart(e, driver.id, index)}
                           onDragOver={(e) => handleStopDragOver(e, driver.id, index)}
                           onDrop={(e) => handleStopDrop(e, driver.id, index, route.stops)}
                           onDragEnd={handleStopDragEnd}

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -110,6 +112,9 @@ class Settings(BaseModel):
     # only when enough was extracted to do so (name, address, and a
     # geocode); anything short of that still falls back to manual review.
     auto_add_imports: bool = False
+    # Purely a display preference -- DriverRoute.total_distance_km is always
+    # computed and transmitted in km; the frontend converts for display.
+    distance_unit: Literal["mi", "km"] = "mi"
 
 
 class UpdateDriverRequest(BaseModel):
