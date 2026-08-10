@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from ..data import DRIVERS, STORES
+from ..data import DRIVERS, STORES, save_stores
 from ..models import Driver, OptimizeRequest, OptimizeResponse, Store
 from ..optimizer import build_routes
 
@@ -10,6 +10,16 @@ router = APIRouter(prefix="/api")
 @router.get("/stores", response_model=list[Store])
 def list_stores() -> list[Store]:
     return STORES
+
+
+@router.delete("/stores/{store_id}")
+def delete_store(store_id: str) -> dict[str, bool]:
+    store = next((s for s in STORES if s.id == store_id), None)
+    if store is None:
+        raise HTTPException(status_code=404, detail="Unknown store id")
+    STORES.remove(store)
+    save_stores()
+    return {"ok": True}
 
 
 @router.get("/drivers", response_model=list[Driver])

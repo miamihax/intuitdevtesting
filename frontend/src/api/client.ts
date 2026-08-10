@@ -32,6 +32,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export const api = {
   quickbooksConnectUrl: `${API_BASE_URL}/api/quickbooks/connect`,
   getStores: () => request<Store[]>('/api/stores'),
+  deleteStore: (storeId: string) => request<{ ok: boolean }>(`/api/stores/${storeId}`, { method: 'DELETE' }),
   getDrivers: () => request<Driver[]>('/api/drivers'),
   optimize: (storeIds?: string[], driverIds?: string[]) =>
     request<OptimizeResponse>('/api/optimize', {

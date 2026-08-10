@@ -17,6 +17,7 @@ interface MapProps {
   loading: boolean
   onOptimize: (storeIds?: string[]) => void
   onUpdateStore: (storeId: string, patch: Partial<Store>) => void
+  onDeleteStore: (storeId: string) => void
   onImportOrders: () => void
 }
 
@@ -31,6 +32,7 @@ export default function MapView({
   loading,
   onOptimize,
   onUpdateStore,
+  onDeleteStore,
   onImportOrders,
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -236,6 +238,7 @@ export default function MapView({
         onImportOrders={onImportOrders}
         onOptimize={onOptimize}
         onUpdateStore={onUpdateStore}
+        onDeleteStore={onDeleteStore}
         selectedOrderIds={selectedOrderIds}
         onSelectedOrderIdsChange={onSelectedOrderIdsChange}
       />

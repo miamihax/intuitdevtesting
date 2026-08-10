@@ -69,6 +69,16 @@ export default function App() {
     setStores((prev) => [...prev, store])
   }
 
+  const handleDeleteStore = (storeId: string) => {
+    api
+      .deleteStore(storeId)
+      .then(() => {
+        setStores((prev) => prev.filter((store) => store.id !== storeId))
+        setSelectedOrderIds((prev) => prev.filter((id) => id !== storeId))
+      })
+      .catch((e: Error) => setError(e.message))
+  }
+
   const handleOfficeUpdated = (updated: OfficeLocation) => {
     setOffice(updated)
     // Every driver shares the same depot — keep the local list in sync with
@@ -129,6 +139,7 @@ export default function App() {
         loading={loading}
         onOptimize={handleOptimize}
         onUpdateStore={handleUpdateStore}
+        onDeleteStore={handleDeleteStore}
         onImportOrders={() => setImportModalOpen(true)}
       />
       {error && <div className="error-banner">{error}</div>}

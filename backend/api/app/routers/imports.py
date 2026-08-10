@@ -11,6 +11,23 @@ from ..models import ConfirmImportRequest, Store
 router = APIRouter(prefix="/api/imports")
 
 
+def _unique_store_id(invoice_number: str | None) -> str:
+    # Prefer the invoice number as the order ID so it's traceable back to
+    # its source document -- fall back to a random ID when one wasn't
+    # extracted. Since store IDs must be unique (used for lookups, edits,
+    # and deletes), disambiguate a colliding invoice number (e.g. the same
+    # invoice re-uploaded, or two distributors reusing the same number)
+    # instead of silently overwriting an existing order with the same ID.
+    base = invoice_number or f"import-{uuid.uuid4().hex[:8]}"
+    existing_ids = {store.id for store in STORES}
+    if base not in existing_ids:
+        return base
+    suffix = 2
+    while f"{base}-{suffix}" in existing_ids:
+        suffix += 1
+    return f"{base}-{suffix}"
+
+
 @router.post("/upload")
 async def upload_invoice(file: UploadFile = File(...)) -> dict[str, str]:
     if not file.filename:
@@ -50,9 +67,7 @@ def confirm_import(pending_id: str, request: ConfirmImportRequest) -> Store:
 
     pop_pending(pending_id)
 
-    # Prefer the invoice number as the order ID so it's traceable back to its
-    # source document — fall back to a random ID when one wasn't extracted.
-    store_id = pending.invoice_number or f"import-{uuid.uuid4().hex[:8]}"
+    store_id = _unique_store_id(pending.invoice_number)
 
     store = Store(
         id=store_id,

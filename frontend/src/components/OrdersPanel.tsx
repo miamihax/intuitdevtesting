@@ -19,6 +19,7 @@ interface OrdersPanelProps {
   onImportOrders: () => void
   onOptimize: (storeIds?: string[]) => void
   onUpdateStore: (storeId: string, patch: Partial<Store>) => void
+  onDeleteStore: (storeId: string) => void
   selectedOrderIds: string[]
   onSelectedOrderIdsChange: (updater: string[] | ((prev: string[]) => string[])) => void
 }
@@ -52,11 +53,13 @@ export default function OrdersPanel({
   onImportOrders,
   onOptimize,
   onUpdateStore,
+  onDeleteStore,
   selectedOrderIds,
   onSelectedOrderIdsChange,
 }: OrdersPanelProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [editMode, setEditMode] = useState(false)
+  const [deleteMode, setDeleteMode] = useState(false)
   const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null)
   const [optimizeMenuOpen, setOptimizeMenuOpen] = useState(false)
   const optimizeMenuRef = useRef<HTMLDivElement>(null)
@@ -130,8 +133,23 @@ export default function OrdersPanel({
       </div>
 
       <div className="orders-panel-actions-secondary">
-        <button className="edit-orders-button" onClick={() => setEditMode((e) => !e)}>
+        <button
+          className="edit-orders-button"
+          onClick={() => {
+            setEditMode((e) => !e)
+            setDeleteMode(false)
+          }}
+        >
           {editMode ? 'Done Editing' : 'Edit Orders'}
+        </button>
+        <button
+          className="delete-orders-button"
+          onClick={() => {
+            setDeleteMode((d) => !d)
+            setEditMode(false)
+          }}
+        >
+          {deleteMode ? 'Done Deleting' : 'Delete Orders'}
         </button>
       </div>
 
@@ -146,6 +164,7 @@ export default function OrdersPanel({
                 <th>Time Window</th>
                 <th>Cases</th>
                 <th>Stop #</th>
+                {deleteMode && <th></th>}
               </tr>
             </thead>
             <tbody>
@@ -215,6 +234,19 @@ export default function OrdersPanel({
                     </td>
                     <td>{row.caseCount}</td>
                     <td>{row.stopNumber ?? '—'}</td>
+                    {deleteMode && (
+                      <td>
+                        <button
+                          className="delete-order-button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteStore(row.orderId)
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ),
               )}
