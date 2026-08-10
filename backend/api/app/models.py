@@ -58,6 +58,11 @@ class OptimizeResponse(BaseModel):
     unassigned_store_ids: list[str]
 
 
+class ReorderRouteRequest(BaseModel):
+    driver_id: str
+    store_ids: list[str]  # this driver's stops, in the desired new order
+
+
 class AgentAskRequest(BaseModel):
     question: str
 

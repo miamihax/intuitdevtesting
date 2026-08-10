@@ -1,6 +1,7 @@
 import type {
   ConfirmImportFields,
   Driver,
+  DriverRoute,
   OfficeLocation,
   OptimizeResponse,
   PendingImport,
@@ -72,4 +73,9 @@ export const api = {
   getSettings: () => request<Settings>('/api/settings'),
   updateSettings: (settings: Settings) =>
     request<Settings>('/api/settings', { method: 'PUT', body: JSON.stringify(settings) }),
+  reorderRoute: (driverId: string, storeIds: string[]) =>
+    request<DriverRoute>('/api/routes/reorder', {
+      method: 'POST',
+      body: JSON.stringify({ driver_id: driverId, store_ids: storeIds }),
+    }),
 }

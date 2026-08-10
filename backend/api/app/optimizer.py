@@ -59,51 +59,58 @@ def build_routes(
     routes: list[DriverRoute] = []
     for driver in drivers:
         ordered = nearest_neighbor_order(driver.depot, assignments[driver.id])
-        metrics = get_route_metrics(driver.depot, ordered)
+        routes.append(build_route_for_order(driver, ordered))
 
-        stops: list[RouteStop] = []
-        cumulative_min = float(parse_hhmm(driver.shift_start))
-        total_drive_min = 0.0
-        total_service_min = 0.0
+    return routes, unassigned
 
-        for i, store in enumerate(ordered):
-            drive_min = metrics.leg_durations_min[i]
-            cumulative_min += drive_min
-            eta = format_minutes(cumulative_min)
-            window_start = parse_hhmm(store.time_window_start)
-            window_end = parse_hhmm(store.time_window_end)
-            on_time = window_start <= cumulative_min <= window_end
 
-            stop_service_min = service_minutes(store.case_count)
+def build_route_for_order(driver: Driver, ordered: list[Store]) -> DriverRoute:
+    """Computes a DriverRoute's timing/distance metrics for a stop order
+    that's already been decided -- shared by build_routes (which picks the
+    order itself via nearest_neighbor_order) and manual stop reordering
+    (routers/routes.py's /routes/reorder), which hands in a user-picked
+    order instead."""
+    metrics = get_route_metrics(driver.depot, ordered)
 
-            stops.append(
-                RouteStop(
-                    store=store,
-                    sequence=i + 1,
-                    eta=eta,
-                    drive_minutes=round(drive_min, 1),
-                    service_minutes=round(stop_service_min, 1),
-                    on_time=on_time,
-                )
-            )
+    stops: list[RouteStop] = []
+    cumulative_min = float(parse_hhmm(driver.shift_start))
+    total_drive_min = 0.0
+    total_service_min = 0.0
 
-            cumulative_min += stop_service_min
-            total_drive_min += drive_min
-            total_service_min += stop_service_min
+    for i, store in enumerate(ordered):
+        drive_min = metrics.leg_durations_min[i]
+        cumulative_min += drive_min
+        eta = format_minutes(cumulative_min)
+        window_start = parse_hhmm(store.time_window_start)
+        window_end = parse_hhmm(store.time_window_end)
+        on_time = window_start <= cumulative_min <= window_end
 
-        total_distance_km = sum(metrics.leg_distances_km)
+        stop_service_min = service_minutes(store.case_count)
 
-        routes.append(
-            DriverRoute(
-                driver=driver,
-                stops=stops,
-                total_distance_km=round(total_distance_km, 2),
-                total_drive_minutes=round(total_drive_min, 1),
-                total_service_minutes=round(total_service_min, 1),
-                estimated_finish_time=format_minutes(cumulative_min),
-                estimate_source=metrics.estimate_source,
-                geometry=metrics.geometry,
+        stops.append(
+            RouteStop(
+                store=store,
+                sequence=i + 1,
+                eta=eta,
+                drive_minutes=round(drive_min, 1),
+                service_minutes=round(stop_service_min, 1),
+                on_time=on_time,
             )
         )
 
-    return routes, unassigned
+        cumulative_min += stop_service_min
+        total_drive_min += drive_min
+        total_service_min += stop_service_min
+
+    total_distance_km = sum(metrics.leg_distances_km)
+
+    return DriverRoute(
+        driver=driver,
+        stops=stops,
+        total_distance_km=round(total_distance_km, 2),
+        total_drive_minutes=round(total_drive_min, 1),
+        total_service_minutes=round(total_service_min, 1),
+        estimated_finish_time=format_minutes(cumulative_min),
+        estimate_source=metrics.estimate_source,
+        geometry=metrics.geometry,
+    )

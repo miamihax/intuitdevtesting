@@ -17,6 +17,7 @@ interface SidebarProps {
   routes: DriverRoute[]
   selectedDriverIds: string[]
   onToggleDriver: (driverId: string) => void
+  onReorderStops: (driverId: string, storeIds: string[]) => void
   onEditDrivers: () => void
   onOpenSettings: () => void
 }
@@ -27,6 +28,7 @@ export default function Sidebar({
   routes,
   selectedDriverIds,
   onToggleDriver,
+  onReorderStops,
   onEditDrivers,
   onOpenSettings,
 }: SidebarProps) {
@@ -41,6 +43,35 @@ export default function Sidebar({
   const unscheduledOrders = totalOrders - scheduledOrders
 
   const [collapsed, setCollapsed] = useState(false)
+  const [dragState, setDragState] = useState<{ driverId: string; fromIndex: number } | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+
+  const handleStopDragStart = (driverId: string, index: number) => {
+    setDragState({ driverId, fromIndex: index })
+  }
+
+  const handleStopDragOver = (e: React.DragEvent, driverId: string, index: number) => {
+    if (!dragState || dragState.driverId !== driverId) return
+    e.preventDefault()
+    setDragOverIndex(index)
+  }
+
+  const handleStopDrop = (e: React.DragEvent, driverId: string, index: number, stops: DriverRoute['stops']) => {
+    e.preventDefault()
+    setDragState(null)
+    setDragOverIndex(null)
+    if (!dragState || dragState.driverId !== driverId || dragState.fromIndex === index) return
+
+    const storeIds = stops.map((s) => s.store.id)
+    const [moved] = storeIds.splice(dragState.fromIndex, 1)
+    storeIds.splice(index, 0, moved)
+    onReorderStops(driverId, storeIds)
+  }
+
+  const handleStopDragEnd = () => {
+    setDragState(null)
+    setDragOverIndex(null)
+  }
 
   return (
     <aside className={collapsed ? 'sidebar collapsed' : 'sidebar'}>
@@ -108,8 +139,21 @@ export default function Sidebar({
                       {formatDuration(route.total_service_minutes)} stops
                     </div>
                     <ul className="stop-etas">
-                      {route.stops.map((stop) => (
-                        <li key={stop.store.id}>
+                      {route.stops.map((stop, index) => (
+                        <li
+                          key={stop.store.id}
+                          draggable
+                          className={
+                            dragState?.driverId === driver.id && dragOverIndex === index
+                              ? 'stop-drag-over'
+                              : undefined
+                          }
+                          onDragStart={() => handleStopDragStart(driver.id, index)}
+                          onDragOver={(e) => handleStopDragOver(e, driver.id, index)}
+                          onDrop={(e) => handleStopDrop(e, driver.id, index, route.stops)}
+                          onDragEnd={handleStopDragEnd}
+                        >
+                          <span className="stop-drag-handle">⠿</span>
                           {stop.sequence}. {stop.store.name} — {stop.eta}
                           {stop.on_time === false && <span className="late-flag"> ⚠ outside time window</span>}
                         </li>

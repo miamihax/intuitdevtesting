@@ -6,7 +6,7 @@ import MapView from './components/Map'
 import OfficeSettingsModal from './components/OfficeSettingsModal'
 import SettingsModal from './components/SettingsModal'
 import Sidebar from './components/Sidebar'
-import type { Driver, DriverRoute, OfficeLocation, Store, UpdateDriverFields } from './types'
+import type { Driver, DriverRoute, OfficeLocation, RouteStop, Store, UpdateDriverFields } from './types'
 
 export default function App() {
   const [stores, setStores] = useState<Store[]>([])
@@ -72,6 +72,40 @@ export default function App() {
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
+  }
+
+  // Drag-and-drop reorder in the sidebar (see Sidebar.tsx) hands back the
+  // dragged driver's full new stop order. Reorder optimistically so the
+  // list responds immediately — ETAs/drive times stay stale until the
+  // recomputed route (real distances for the new order) comes back.
+  const handleReorderStops = (driverId: string, storeIds: string[]) => {
+    const previousRoute = routes.find((r) => r.driver.id === driverId)
+    if (!previousRoute) return
+
+    const storeById = new Map(previousRoute.stops.map((s) => [s.store.id, s.store]))
+    const stopById = new Map(previousRoute.stops.map((s) => [s.store.id, s]))
+    setRoutes((prev) =>
+      prev.map((route) =>
+        route.driver.id === driverId
+          ? {
+              ...route,
+              stops: storeIds.map(
+                (id, i): RouteStop => ({ ...(stopById.get(id) as RouteStop), store: storeById.get(id)!, sequence: i + 1 }),
+              ),
+            }
+          : route,
+      ),
+    )
+
+    api
+      .reorderRoute(driverId, storeIds)
+      .then((updatedRoute) => {
+        setRoutes((prev) => prev.map((route) => (route.driver.id === driverId ? updatedRoute : route)))
+      })
+      .catch((e: Error) => {
+        setError(e.message)
+        setRoutes((prev) => prev.map((route) => (route.driver.id === driverId ? previousRoute : route)))
+      })
   }
 
   const handleToggleDriver = (driverId: string) => {
@@ -144,6 +178,7 @@ export default function App() {
         routes={routes}
         selectedDriverIds={selectedDriverIds}
         onToggleDriver={handleToggleDriver}
+        onReorderStops={handleReorderStops}
         onEditDrivers={() => setDriversModalOpen(true)}
         onOpenSettings={() => setSettingsModalOpen(true)}
       />

@@ -447,7 +447,28 @@ body {
 }
 
 .stop-etas li {
-  padding: 0.15rem 0;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  cursor: grab;
+  border: 1px solid transparent;
+}
+
+.stop-etas li:hover {
+  background: #f2f2f2;
+}
+
+.stop-etas li:active {
+  cursor: grabbing;
+}
+
+.stop-etas li.stop-drag-over {
+  border: 1px dashed #457b9d;
+  background: #eaf1f7;
+}
+
+.stop-drag-handle {
+  color: #999;
+  margin-right: 0.3rem;
 }
 
 .late-flag {
