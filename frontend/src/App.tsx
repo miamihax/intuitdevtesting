@@ -6,7 +6,16 @@ import MapView from './components/Map'
 import OfficeSettingsModal from './components/OfficeSettingsModal'
 import SettingsModal from './components/SettingsModal'
 import Sidebar from './components/Sidebar'
-import type { Driver, DriverRoute, OfficeLocation, RouteStop, Settings, Store, UpdateDriverFields } from './types'
+import type {
+  Driver,
+  DriverRoute,
+  OfficeLocation,
+  RouteStop,
+  RouteStrategy,
+  Settings,
+  Store,
+  UpdateDriverFields,
+} from './types'
 
 const DEFAULT_SETTINGS: Settings = { auto_add_imports: false, distance_unit: 'mi' }
 
@@ -112,6 +121,25 @@ export default function App() {
       })
   }
 
+  // Re-orders one driver's existing stops according to the chosen strategy
+  // (see Sidebar's per-route dropdown) rather than a user drag — the backend
+  // picks the order, we just hand it the current stop set.
+  const handleResequenceRoute = (driverId: string, strategy: RouteStrategy) => {
+    const route = routes.find((r) => r.driver.id === driverId)
+    if (!route) return
+    const storeIds = route.stops.map((s) => s.store.id)
+
+    setLoading(true)
+    setError(null)
+    api
+      .resequenceRoute(driverId, storeIds, strategy)
+      .then((updatedRoute) => {
+        setRoutes((prev) => prev.map((r) => (r.driver.id === driverId ? updatedRoute : r)))
+      })
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false))
+  }
+
   const handleToggleDriver = (driverId: string) => {
     setSelectedDriverIds((prev) =>
       prev.includes(driverId) ? prev.filter((id) => id !== driverId) : [...prev, driverId],
@@ -192,6 +220,7 @@ export default function App() {
         selectedDriverIds={selectedDriverIds}
         onToggleDriver={handleToggleDriver}
         onReorderStops={handleReorderStops}
+        onResequenceRoute={handleResequenceRoute}
         onEditDrivers={() => setDriversModalOpen(true)}
         onOpenSettings={() => setSettingsModalOpen(true)}
         distanceUnit={settings.distance_unit}

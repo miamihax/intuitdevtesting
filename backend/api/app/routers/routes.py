@@ -1,8 +1,16 @@
 from fastapi import APIRouter, HTTPException
 
 from ..data import DRIVERS, STORES, save_stores
-from ..models import Driver, DriverRoute, OptimizeRequest, OptimizeResponse, ReorderRouteRequest, Store
-from ..optimizer import build_route_for_order, build_routes
+from ..models import (
+    Driver,
+    DriverRoute,
+    OptimizeRequest,
+    OptimizeResponse,
+    ReorderRouteRequest,
+    ResequenceRouteRequest,
+    Store,
+)
+from ..optimizer import build_route_for_order, build_routes, order_for_strategy
 
 router = APIRouter(prefix="/api")
 
@@ -63,4 +71,20 @@ def reorder_route(request: ReorderRouteRequest) -> DriverRoute:
         raise HTTPException(status_code=404, detail=f"Unknown store ids: {missing}")
 
     ordered = [by_id[i] for i in request.store_ids]
+    return build_route_for_order(driver, ordered)
+
+
+@router.post("/routes/resequence", response_model=DriverRoute)
+def resequence_route(request: ResequenceRouteRequest) -> DriverRoute:
+    driver = next((d for d in DRIVERS if d.id == request.driver_id), None)
+    if driver is None:
+        raise HTTPException(status_code=404, detail="Unknown driver id")
+
+    by_id = {s.id: s for s in STORES}
+    missing = [i for i in request.store_ids if i not in by_id]
+    if missing:
+        raise HTTPException(status_code=404, detail=f"Unknown store ids: {missing}")
+
+    stores = [by_id[i] for i in request.store_ids]
+    ordered = order_for_strategy(request.strategy, driver.depot, stores)
     return build_route_for_order(driver, ordered)

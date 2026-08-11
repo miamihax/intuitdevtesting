@@ -44,6 +44,8 @@ export interface DriverRoute {
   geometry: [number, number][] | null
 }
 
+export type RouteStrategy = 'fastest' | 'time_windows'
+
 export interface OptimizeResponse {
   routes: DriverRoute[]
   unassigned_store_ids: string[]

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Driver, DriverRoute, Store } from '../types'
+import type { Driver, DriverRoute, RouteStrategy, Store } from '../types'
 
 const KM_TO_MI = 0.621371
 
@@ -27,6 +27,7 @@ interface SidebarProps {
   selectedDriverIds: string[]
   onToggleDriver: (driverId: string) => void
   onReorderStops: (driverId: string, storeIds: string[]) => void
+  onResequenceRoute: (driverId: string, strategy: RouteStrategy) => void
   onEditDrivers: () => void
   onOpenSettings: () => void
   distanceUnit: 'mi' | 'km'
@@ -39,6 +40,7 @@ export default function Sidebar({
   selectedDriverIds,
   onToggleDriver,
   onReorderStops,
+  onResequenceRoute,
   onEditDrivers,
   onOpenSettings,
   distanceUnit,
@@ -56,6 +58,10 @@ export default function Sidebar({
   const [collapsed, setCollapsed] = useState(false)
   const [dragState, setDragState] = useState<{ driverId: string; fromIndex: number } | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  // Which sort strategy is showing in each driver's dropdown -- purely
+  // client-side display state, since the backend recomputes on demand and
+  // doesn't track a "current strategy" per route.
+  const [strategyByDriver, setStrategyByDriver] = useState<Record<string, RouteStrategy>>({})
 
   const handleStopDragStart = (e: React.DragEvent, driverId: string, index: number) => {
     // Firefox (and some Chrome versions) refuse to start a native HTML5 drag
@@ -141,8 +147,23 @@ export default function Sidebar({
                 </label>
                 {route && (
                   <>
-                    <div>
-                      {route.stops.length} stops · {formatDistance(route.total_distance_km, distanceUnit)}
+                    <div className="route-stats-row">
+                      <span>
+                        {route.stops.length} stops · {formatDistance(route.total_distance_km, distanceUnit)}
+                      </span>
+                      <select
+                        className="route-strategy-select"
+                        aria-label={`Sort ${driver.name}'s route`}
+                        value={strategyByDriver[driver.id] ?? 'fastest'}
+                        onChange={(e) => {
+                          const strategy = e.target.value as RouteStrategy
+                          setStrategyByDriver((prev) => ({ ...prev, [driver.id]: strategy }))
+                          onResequenceRoute(driver.id, strategy)
+                        }}
+                      >
+                        <option value="fastest">Fastest route</option>
+                        <option value="time_windows">Fit all time windows</option>
+                      </select>
                     </div>
                     <div>
                       Est. finish: <strong>{route.estimated_finish_time}</strong>

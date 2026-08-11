@@ -5,6 +5,7 @@ import type {
   OfficeLocation,
   OptimizeResponse,
   PendingImport,
+  RouteStrategy,
   Settings,
   Store,
   UpdateDriverFields,
@@ -77,5 +78,10 @@ export const api = {
     request<DriverRoute>('/api/routes/reorder', {
       method: 'POST',
       body: JSON.stringify({ driver_id: driverId, store_ids: storeIds }),
+    }),
+  resequenceRoute: (driverId: string, storeIds: string[], strategy: RouteStrategy) =>
+    request<DriverRoute>('/api/routes/resequence', {
+      method: 'POST',
+      body: JSON.stringify({ driver_id: driverId, store_ids: storeIds, strategy }),
     }),
 }

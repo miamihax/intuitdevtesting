@@ -465,6 +465,22 @@ body {
   font-size: 0.8rem;
 }
 
+.route-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.route-strategy-select {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.3rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  color: #333;
+}
+
 .route-time-breakdown {
   color: #666;
   font-size: 0.85rem;

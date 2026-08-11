@@ -26,6 +26,19 @@ def nearest_neighbor_order(start_coords, stores: list[Store]) -> list[Store]:
     return ordered
 
 
+def time_window_order(start_coords, stores: list[Store]) -> list[Store]:
+    """Earliest-deadline-first ordering: visits whichever remaining stop's
+    time window closes soonest. Favors honoring every window over minimizing
+    drive distance, unlike nearest_neighbor_order."""
+    return sorted(stores, key=lambda s: parse_hhmm(s.time_window_end))
+
+
+def order_for_strategy(strategy: str, start_coords, stores: list[Store]) -> list[Store]:
+    if strategy == "time_windows":
+        return time_window_order(start_coords, stores)
+    return nearest_neighbor_order(start_coords, stores)
+
+
 def build_routes(
     drivers: list[Driver], stores: list[Store]
 ) -> tuple[list[DriverRoute], list[str]]:

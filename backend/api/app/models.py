@@ -65,6 +65,14 @@ class ReorderRouteRequest(BaseModel):
     store_ids: list[str]  # this driver's stops, in the desired new order
 
 
+class ResequenceRouteRequest(BaseModel):
+    driver_id: str
+    store_ids: list[str]  # this driver's current stops -- order doesn't matter, it's recomputed
+    # "fastest": nearest-neighbor, minimizes drive distance/time.
+    # "time_windows": earliest-deadline-first, prioritizes honoring every store's time window.
+    strategy: Literal["fastest", "time_windows"] = "fastest"
+
+
 class AgentAskRequest(BaseModel):
     question: str
 
