@@ -4,7 +4,7 @@ from .data import STORES, save_stores
 from .models import Coordinates, Store
 
 DEFAULT_TIME_WINDOW_START = "09:00"
-DEFAULT_TIME_WINDOW_END = "17:00"
+DEFAULT_TIME_WINDOW_END = "19:00"
 
 
 def unique_store_id(invoice_number: str | None) -> str:

@@ -38,22 +38,27 @@ def confirm_import(pending_id: str, request: ConfirmImportRequest) -> Store:
         raise HTTPException(status_code=404, detail="Unknown pending import")
 
     # Reuse the geocode captured during OCR unless the address was edited.
+    address = request.address
     if pending.address == request.address and pending.coordinates is not None:
         coordinates = pending.coordinates
         approximate_location = pending.approximate_location
     else:
-        geocode_result = geocode_address(request.address)
+        geocode_result = geocode_address(request.address, request.name)
         if geocode_result is None:
             raise HTTPException(status_code=422, detail="Could not locate that address — check it and try again")
         coordinates = geocode_result.coordinates
         approximate_location = geocode_result.approximate
+        # A name search can land on a different (correct) address than what
+        # was typed -- prefer that so what's shown always matches the
+        # coordinates actually being used.
+        address = geocode_result.resolved_address or request.address
 
     pop_pending(pending_id)
 
     return add_store(
         invoice_number=pending.invoice_number,
         name=request.name,
-        address=request.address,
+        address=address,
         coordinates=coordinates,
         approximate_location=approximate_location,
         time_window_start=request.time_window_start,

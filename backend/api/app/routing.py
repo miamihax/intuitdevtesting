@@ -42,6 +42,57 @@ def _fallback_metrics(depot: Coordinates, ordered_stops: list[Store]) -> RouteMe
     return RouteMetrics(durations, distances, None, "straight_line_estimate")
 
 
+def _haversine_matrix(points: list[Coordinates]) -> list[list[float]]:
+    return [[haversine_km(a, b) for b in points] for a in points]
+
+
+def get_duration_distance_matrix(
+    depot: Coordinates, stores: list[Store]
+) -> tuple[list[list[float]], list[list[float]], str]:
+    """All-pairs driving duration (minutes) and distance (km) between the
+    depot (matrix index 0) and each store (index i+1 for stores[i]), via
+    OSRM's table service.
+
+    Used by the optimizer to construct and refine a stop order against real
+    road-network costs -- rather than straight-line distance -- without
+    issuing a separate /route request per candidate ordering. Falls back to
+    a haversine-based matrix (same assumed speed as get_route_metrics' local
+    fallback) if OSRM is unreachable.
+    """
+    points = [depot] + [s.coordinates for s in stores]
+    if len(points) <= 1:
+        return [[0.0]], [[0.0]], "road_network"
+
+    coords_str = ";".join(f"{c.lng},{c.lat}" for c in points)
+    url = f"{OSRM_BASE_URL}/table/v1/driving/{coords_str}"
+
+    try:
+        response = httpx.get(
+            url,
+            params={"annotations": "duration,distance"},
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        data = response.json()
+        if data.get("code") != "Ok" or not data.get("durations"):
+            raise ValueError(f"OSRM table returned no usable matrix: {data.get('code')}")
+
+        duration_min = [[d / 60.0 for d in row] for row in data["durations"]]
+        distances_m = data.get("distances")
+        if distances_m is not None:
+            distance_km = [[d / 1000.0 for d in row] for row in distances_m]
+        else:
+            distance_km = _haversine_matrix(points)
+        return duration_min, distance_km, "road_network"
+    except Exception:
+        # Network failure, timeout, rate limit, or malformed response --
+        # degrade to a straight-line/assumed-speed matrix rather than
+        # failing the request.
+        distance_km = _haversine_matrix(points)
+        duration_min = [[(d / FALLBACK_SPEED_KMH) * 60.0 for d in row] for row in distance_km]
+        return duration_min, distance_km, "straight_line_estimate"
+
+
 def get_route_metrics(depot: Coordinates, ordered_stops: list[Store]) -> RouteMetrics:
     """Get driving duration/distance per leg and a road-snapped geometry for
     depot -> stop1 -> stop2 -> ... -> stopN, in that fixed order.

@@ -11,7 +11,7 @@ const DEFAULT_FIELDS: ConfirmImportFields = {
   name: '',
   address: '',
   time_window_start: '09:00',
-  time_window_end: '17:00',
+  time_window_end: '19:00',
   case_count: 0,
 }
 
@@ -170,6 +170,17 @@ export default function ImportOrdersModal({ onClose, onStoreImported }: ImportOr
                   {p.approximate_location && (
                     <div className="import-approximate-warning">
                       ⚠ Exact address not found — located to the ZIP code area only. Verify or adjust it.
+                    </div>
+                  )}
+                  {p.suggested_address && p.suggested_address !== editFor(p).address && (
+                    <div className="import-suggested-address">
+                      <span>Found via web search: {p.suggested_address}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleFieldChange(p, { address: p.suggested_address! })}
+                      >
+                        Use this address
+                      </button>
                     </div>
                   )}
                   <div className="import-review-row">

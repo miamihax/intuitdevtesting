@@ -9,6 +9,7 @@ import type {
   Settings,
   Store,
   UpdateDriverFields,
+  UpdateStoreFields,
 } from '../types'
 
 // Strip any trailing slash so a misconfigured env var (e.g. "https://host.com/")
@@ -36,6 +37,9 @@ export const api = {
   quickbooksConnectUrl: `${API_BASE_URL}/api/quickbooks/connect`,
   getStores: () => request<Store[]>('/api/stores'),
   deleteStore: (storeId: string) => request<{ ok: boolean }>(`/api/stores/${storeId}`, { method: 'DELETE' }),
+  deleteAllStores: () => request<{ deleted: number }>('/api/stores', { method: 'DELETE' }),
+  updateStore: (storeId: string, fields: UpdateStoreFields) =>
+    request<Store>(`/api/stores/${storeId}`, { method: 'PUT', body: JSON.stringify(fields) }),
   getDrivers: () => request<Driver[]>('/api/drivers'),
   optimize: (storeIds?: string[], driverIds?: string[]) =>
     request<OptimizeResponse>('/api/optimize', {

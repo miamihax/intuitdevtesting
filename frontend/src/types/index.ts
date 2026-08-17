@@ -61,6 +61,7 @@ export interface PendingImport {
   address: string | null
   coordinates: Coordinates | null
   approximate_location: boolean
+  suggested_address: string | null
   case_count: number | null
   time_window_start: string | null
   time_window_end: string | null
@@ -87,7 +88,17 @@ export interface UpdateDriverFields {
   shift_end: string
 }
 
+export interface UpdateStoreFields {
+  name: string
+  address: string
+  time_window_start: string
+  time_window_end: string
+  case_count: number
+}
+
 export interface Settings {
   auto_add_imports: boolean
   distance_unit: 'mi' | 'km'
+  time_format: '24h' | '12h'
+  theme: 'dark' | 'light'
 }

@@ -1,3 +1,74 @@
+/* ============================================================
+   OptiRoute — dispatch console design system
+   A freight/warehouse dispatch-board aesthetic: gunmetal panels,
+   stamped-plate labels, manifest-ledger data in monospace, and a
+   a single accent color (orange in dark mode, blue in light) reserved
+   for primary actions -- see the Theme setting.
+   ============================================================ */
+
+:root {
+  /* --- base palette (dark, default) --- */
+  --gunmetal: #14181c; /* app floor */
+  --plate: #1d232a; /* panels: sidebar, orders board, modals */
+  --plate-raised: #262e36; /* inputs, hover rows, menus */
+  --plate-sunken: #10141870; /* pressed / inset surfaces */
+  --seam: #3a4750; /* borders, dividers, welded seams */
+  --seam-soft: #2a333b; /* quieter dividers */
+  --paper: #ece6d8; /* primary text — manifest paper */
+  --paper-dim: #97a1a8; /* secondary / muted text */
+  --paper-faint: #6d767d; /* tertiary text, placeholders */
+
+  /* --- accent (dark: safety orange) -- the ONE swappable brand color --- */
+  --accent: #ff6a1a;
+  --accent-dim: #c9550f;
+  --accent-hover: #ff7d38;
+  --accent-contrast: #1a0f00; /* text/icon color placed on top of accent fills */
+  --accent-rgb: 255, 106, 26; /* for rgba() tints -- selection, drag-over, etc. */
+
+  /* --- signal colors (each one means something — used sparingly; these
+     stay hue-stable across themes, only re-tuned for light-bg contrast) --- */
+  --caution-yellow: #f2b705; /* warnings only */
+  --hazard-red: #e5484d; /* destructive / errors only */
+  --signal-green: #3fae6a; /* on-time / success */
+  --signal-blue: #4d8fac; /* informational secondary route */
+
+  /* --- type --- */
+  --font-display: 'IBM Plex Sans Condensed', 'Oswald', sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, Segoe UI, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+
+  --radius: 2px;
+}
+
+/* --- light theme: black floor/panels -> white, orange accent -> blue ---
+   Signal colors (yellow/red/blue-info) are re-tuned, not re-hued, so they
+   stay legible as text on a white plate instead of a dark one. */
+:root[data-theme='light'] {
+  --gunmetal: #e7eaed;
+  --plate: #ffffff;
+  --plate-raised: #f1f3f5;
+  --plate-sunken: #e3e7ea;
+  --seam: #c3cad0;
+  --seam-soft: #dde2e6;
+  --paper: #1a2024;
+  --paper-dim: #5b6570;
+  --paper-faint: #889199;
+
+  --accent: #2563eb;
+  --accent-dim: #1d4ed8;
+  --accent-hover: #3b82f6;
+  --accent-contrast: #ffffff;
+  --accent-rgb: 37, 99, 235;
+
+  --caution-yellow: #a8690a;
+  --hazard-red: #c0272c;
+  --signal-blue: #2b6c8a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 html,
 body,
 #root {
@@ -6,19 +77,123 @@ body,
 }
 
 body {
-  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  font-family: var(--font-body);
+  background: var(--gunmetal);
+  color: var(--paper);
+  font-size: 14px;
 }
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* Thin steel scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--seam) transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--seam);
+  border-radius: var(--radius);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   Buttons & inputs — flat riveted plate controls, no pill shapes
+   ============================================================ */
+
+button {
+  padding: 0.5rem 1rem;
+  margin: 0.75rem 0;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--plate-raised);
+  color: var(--paper);
+  border: 1px solid var(--seam);
+  border-radius: var(--radius);
+  transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.05s ease;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--paper-dim);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+input,
+select {
+  font-family: var(--font-mono);
+  background: var(--plate-sunken);
+  color: var(--paper);
+  border: 1px solid var(--seam);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.5rem;
+}
+
+input::placeholder {
+  color: var(--paper-faint);
+}
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+}
+
+label {
+  color: var(--paper-dim);
+}
+
+/* ============================================================
+   App shell
+   ============================================================ */
 
 .app-shell {
   display: flex;
   height: 100vh;
   position: relative;
+  background: var(--gunmetal);
 }
+
+/* ============================================================
+   Sidebar — the control panel
+   ============================================================ */
 
 .sidebar {
   width: 300px;
   overflow: hidden;
-  border-right: 1px solid #ddd;
+  background: var(--plate);
+  border-right: 1px solid var(--seam);
   box-sizing: border-box;
   flex-shrink: 0;
   position: relative;
@@ -51,21 +226,28 @@ body {
   justify-content: center;
   font-size: 0.5625rem;
   line-height: 1;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
+  background: var(--plate-raised);
+  border: 1px solid var(--seam);
+  border-radius: var(--radius);
+  color: var(--paper-dim);
 }
 
 .sidebar-title-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.6rem;
 }
 
 .sidebar h1 {
-  font-size: 1.4rem;
-  margin-bottom: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+  color: var(--paper);
 }
 
 .settings-button {
@@ -78,10 +260,15 @@ body {
   justify-content: center;
   font-size: 1rem;
   line-height: 1;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 50%;
-  cursor: pointer;
+  background: var(--plate-raised);
+  border: 1px solid var(--seam);
+  border-radius: var(--radius);
+  color: var(--paper-dim);
+}
+
+.settings-button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .settings-menu-list {
@@ -94,7 +281,11 @@ body {
 .settings-menu-item {
   text-align: left;
   padding: 0.6rem 0.75rem;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
 }
 
 .settings-toggle-item {
@@ -102,62 +293,75 @@ body {
   align-items: flex-start;
   gap: 0.6rem;
   padding: 0.6rem 0.75rem;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   cursor: pointer;
+  color: var(--paper);
 }
 
 .settings-toggle-item input {
   margin-top: 0.2rem;
+  accent-color: var(--accent);
 }
 
 .settings-toggle-hint {
   display: block;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--paper-faint);
   font-weight: normal;
   margin-top: 0.15rem;
+  font-family: var(--font-body);
 }
 
 .settings-unit-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  color: var(--paper);
 }
 
 .unit-toggle-buttons {
   display: flex;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid var(--seam);
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
 .unit-toggle-buttons button {
   margin: 0;
   padding: 0.3rem 0.65rem;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   border: none;
   border-radius: 0;
-  background: white;
-  color: #444;
+  background: var(--plate-sunken);
+  color: var(--paper-dim);
 }
 
 .unit-toggle-buttons button + button {
-  border-left: 1px solid #ccc;
+  border-left: 1px solid var(--seam);
 }
 
 .unit-toggle-buttons button.unit-toggle-active {
-  background: #457b9d;
-  color: white;
+  background: var(--accent);
+  color: var(--accent-contrast);
 }
 
 .subtitle {
-  color: #666;
-  margin-top: 0.25rem;
+  font-family: var(--font-mono);
+  color: var(--paper-faint);
+  margin-top: 0.4rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
+
+/* ============================================================
+   Map
+   ============================================================ */
 
 .map-wrapper {
   position: relative;
   flex: 1;
+  background: var(--gunmetal);
 }
 
 .map-container {
@@ -165,15 +369,92 @@ body {
   height: 100%;
 }
 
+/* Desaturate the OSM basemap into a steel-toned schematic so it reads
+   as part of the console, not a bright pastel intrusion. Applied only
+   to the tile canvas -- markers/popups/controls are untouched. */
+.map-container canvas.maplibregl-canvas {
+  filter: invert(94%) hue-rotate(180deg) brightness(0.83) contrast(1.05) saturate(0.4);
+}
+
+/* Light theme: the OSM basemap is already light -- just mute it slightly
+   to sit calmly under a white console instead of inverting it. */
+:root[data-theme='light'] .map-container canvas.maplibregl-canvas {
+  filter: saturate(0.55) brightness(1.02) contrast(0.96);
+}
+
+.map-selection-box {
+  position: absolute;
+  display: none;
+  border: 2px dashed var(--accent);
+  background: rgba(var(--accent-rgb), 0.12);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.maplibregl-ctrl-group {
+  background: var(--plate) !important;
+  border: 1px solid var(--seam) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: none !important;
+}
+
+.maplibregl-ctrl-group button + button {
+  border-top: 1px solid var(--seam) !important;
+}
+
+.maplibregl-ctrl-icon {
+  filter: invert(88%) sepia(6%) saturate(200%) brightness(0.95);
+}
+
+/* Maplibre's default control glyphs are dark -- correct as-is on a light
+   control background, so undo the dark-theme inversion above. */
+:root[data-theme='light'] .maplibregl-ctrl-icon {
+  filter: none;
+}
+
+.maplibregl-popup-content {
+  background: var(--plate) !important;
+  color: var(--paper) !important;
+  border: 1px solid var(--seam) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  line-height: 1.5 !important;
+  padding: 0.6rem 0.75rem !important;
+}
+
+.maplibregl-popup-content strong {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+}
+
+.maplibregl-popup-tip {
+  border-top-color: var(--plate) !important;
+  border-bottom-color: var(--plate) !important;
+}
+
+.maplibregl-popup-close-button {
+  color: var(--paper-dim) !important;
+  font-size: 1rem !important;
+}
+
+/* ============================================================
+   Orders panel — the manifest board
+   ============================================================ */
+
 .orders-panel {
   position: absolute;
   bottom: 1rem;
   right: 1rem;
   width: min(480px, calc(100% - 2rem));
   max-height: 40%;
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  background: var(--plate);
+  border: 1px solid var(--seam);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -185,18 +466,33 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--seam);
+  background: var(--plate-raised);
 }
 
 .orders-panel-header h2 {
-  font-size: 1rem;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   margin: 0;
+  color: var(--paper);
+}
+
+.orders-panel-header h2::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 0.5rem;
+  background: var(--accent);
 }
 
 .orders-panel-header button {
   margin: 0;
   padding: 0.35rem 0.75rem;
-  font-size: 0.85rem;
+  font-size: 0.7rem;
 }
 
 .collapse-toggle {
@@ -204,8 +500,9 @@ body {
   padding: 0.25rem 0 !important;
   text-align: center;
   background: transparent;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid var(--seam);
+  border-radius: var(--radius);
+  color: var(--paper-dim);
 }
 
 .orders-panel-actions,
@@ -213,7 +510,7 @@ body {
   display: flex;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--seam);
 }
 
 .orders-panel-actions {
@@ -224,7 +521,26 @@ body {
 .orders-panel-actions-secondary button {
   margin: 0;
   padding: 0.4rem 0.75rem;
-  font-size: 0.85rem;
+  font-size: 0.7rem;
+}
+
+/* The two primary calls to action in the panel get the accent-fill
+   treatment; everything else stays steel-plate secondary. */
+.orders-panel-actions button {
+  background: var(--accent);
+  border-color: var(--accent-dim);
+  color: var(--accent-contrast);
+}
+
+.orders-panel-actions button:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent);
+}
+
+.orders-panel-actions button:disabled {
+  background: var(--plate-raised);
+  border-color: var(--seam);
+  color: var(--paper-faint);
 }
 
 .optimize-dropdown {
@@ -240,10 +556,10 @@ body {
   top: 100%;
   right: 0;
   margin-top: 0.25rem;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: var(--plate-raised);
+  border: 1px solid var(--seam);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   min-width: 200px;
@@ -255,33 +571,53 @@ body {
   margin: 0;
   padding: 0.5rem 0.75rem;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 0;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   white-space: nowrap;
+  color: var(--paper);
 }
 
 .optimize-menu button:hover:not(:disabled) {
-  background: #f2f2f2;
+  background: var(--plate-sunken);
+  color: var(--accent);
 }
 
 .optimize-menu button:disabled {
-  color: #aaa;
+  color: var(--paper-faint);
   cursor: not-allowed;
 }
 
 .edit-orders-button,
-.delete-orders-button {
-  padding: 0.2rem 0.375rem !important;
-  font-size: 0.425rem !important;
+.delete-orders-button,
+.delete-all-orders-button,
+.show-all-stops-button {
+  padding: 0.3rem 0.55rem !important;
+  font-size: 0.65rem !important;
+}
+
+.delete-order-button,
+.delete-orders-button,
+.delete-all-orders-button,
+.delete-driver-button {
+  color: var(--hazard-red);
+  border-color: var(--hazard-red);
+  background: var(--plate-raised);
+}
+
+.delete-order-button:hover:not(:disabled),
+.delete-orders-button:hover:not(:disabled),
+.delete-all-orders-button:hover:not(:disabled),
+.delete-driver-button:hover:not(:disabled) {
+  color: #1a0000;
+  background: var(--hazard-red);
+  border-color: var(--hazard-red);
 }
 
 .delete-order-button {
-  color: #e63946;
-  border-color: #e63946;
   padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
 }
 
 .orders-panel-body {
@@ -292,7 +628,8 @@ body {
 .orders-panel table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
 }
 
 .orders-panel th,
@@ -300,16 +637,13 @@ body {
   text-align: left;
   padding: 0.4rem 0.6rem;
   white-space: nowrap;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--seam-soft);
 }
 
 .orders-panel td input {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   padding: 0.2rem 0.35rem;
-  border: 1px solid #ccc;
-  border-radius: 3px;
   width: 100%;
-  box-sizing: border-box;
 }
 
 .orders-panel td input[type='time'] {
@@ -327,9 +661,14 @@ body {
 .orders-panel th {
   position: sticky;
   top: 0;
-  background: white;
-  color: #666;
+  background: var(--plate-raised);
+  color: var(--paper-dim);
+  font-family: var(--font-display);
   font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  border-bottom: 1px solid var(--accent);
 }
 
 .orders-panel tbody tr {
@@ -338,16 +677,20 @@ body {
 }
 
 .orders-panel tbody tr:hover {
-  background: #f7f7f7;
+  background: var(--plate-raised);
 }
 
 .orders-panel tbody tr.selected-row {
-  background: #dce8fd;
+  background: rgba(var(--accent-rgb), 0.18);
 }
 
 .orders-panel tbody tr.selected-row:hover {
-  background: #cfe0fc;
+  background: rgba(var(--accent-rgb), 0.28);
 }
+
+/* ============================================================
+   Stat readouts — LED-style digital tiles
+   ============================================================ */
 
 .stats-grid {
   list-style: none;
@@ -355,26 +698,37 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
   padding: 0;
-  margin: 0.5rem 0 1rem;
+  margin: 0.75rem 0 1.25rem;
 }
 
 .stats-grid li {
   display: flex;
   flex-direction: column;
-  background: #f7f7f7;
-  border-radius: 4px;
+  background: var(--plate-sunken);
+  border: 1px solid var(--seam-soft);
+  border-radius: var(--radius);
   padding: 0.5rem 0.6rem;
 }
 
 .stat-value {
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
-  font-size: 0.75rem;
-  color: #666;
+  font-size: 0.65rem;
+  color: var(--paper-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0.1rem;
 }
+
+/* ============================================================
+   Drivers
+   ============================================================ */
 
 .driver-list {
   list-style: none;
@@ -382,54 +736,73 @@ body {
 }
 
 .driver-list li {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #eee;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--seam-soft);
 }
 
 .driver-checkbox {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   cursor: pointer;
+}
+
+.driver-checkbox strong {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+.driver-checkbox input {
+  margin: 0;
+  accent-color: var(--accent);
 }
 
 .drivers-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 }
 
 .drivers-section-header h2 {
   margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
 }
 
 .edit-drivers-button {
   padding: 0.3rem 0.6rem;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
 }
 
 .driver-edit-form {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 
 .driver-edit-form label {
   display: block;
-  font-size: 0.75rem;
-  color: #666;
+  font-size: 0.7rem;
+  color: var(--paper-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--font-display);
 }
 
 .driver-edit-form input {
   display: block;
   width: 100%;
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
   font-size: 0.85rem;
-  padding: 0.3rem 0.4rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
+  padding: 0.35rem 0.5rem;
 }
 
 .driver-edit-row {
@@ -451,18 +824,17 @@ body {
   width: auto;
 }
 
-.delete-driver-button {
-  color: #e63946;
-  border-color: #e63946;
-}
-
-.driver-checkbox input {
-  margin: 0;
-}
-
 .estimate-note {
-  color: #b45309;
-  font-size: 0.8rem;
+  color: var(--caution-yellow);
+  font-size: 0.75rem;
+  font-family: var(--font-body);
+}
+
+.driver-shift {
+  color: var(--paper-dim);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  margin: 0.15rem 0 0.5rem;
 }
 
 .route-stats-row {
@@ -470,39 +842,47 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--paper);
 }
 
 .route-strategy-select {
-  font-size: 0.75rem;
-  padding: 0.15rem 0.3rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
-  color: #333;
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.35rem;
+  background: var(--plate-sunken);
+  color: var(--paper-dim);
 }
 
 .route-time-breakdown {
-  color: #666;
-  font-size: 0.85rem;
+  color: var(--paper-dim);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  margin-top: 0.15rem;
 }
 
 .stop-etas {
   list-style: none;
   padding: 0;
-  margin: 0.4rem 0 0;
-  font-size: 0.8rem;
-  color: #444;
+  margin: 0.5rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--paper);
+  border-left: 2px solid var(--seam-soft);
 }
 
 .stop-etas li {
-  padding: 0.15rem 0.3rem;
-  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
   cursor: grab;
   border: 1px solid transparent;
+  border-left: none;
 }
 
 .stop-etas li:hover {
-  background: #f2f2f2;
+  background: var(--plate-raised);
 }
 
 .stop-etas li:active {
@@ -510,62 +890,90 @@ body {
 }
 
 .stop-etas li.stop-drag-over {
-  border: 1px dashed #457b9d;
-  background: #eaf1f7;
+  border: 1px dashed var(--accent);
+  background: rgba(var(--accent-rgb), 0.16);
 }
 
 .stop-drag-handle {
-  color: #999;
-  margin-right: 0.3rem;
+  color: var(--paper-faint);
+  margin-right: 0.35rem;
 }
 
+/* Text sits on a solid caution-yellow chip -- legible by construction --
+   with a small hazard-stripe swatch as a decorative lead-in, rather than
+   printing text directly over the stripe pattern (illegible on its dark
+   half). */
 .late-flag {
-  color: #e63946;
+  display: inline-flex;
+  align-items: center;
+  color: #1a0f00;
+  font-weight: 700;
+  padding: 0.05rem 0.35rem 0.05rem 0;
+  margin-left: 0.3rem;
+  background: var(--caution-yellow);
 }
+
+.late-flag::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 1em;
+  margin-right: 0.3rem;
+  background-image: repeating-linear-gradient(135deg, #1a1f24 0 3px, var(--caution-yellow) 3px 6px);
+}
+
+/* ============================================================
+   Map markers
+   ============================================================ */
 
 .store-marker {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #e63946;
-  border: 2px solid white;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  background: var(--signal-blue);
+  border: 2px solid var(--gunmetal);
+  box-shadow: 0 0 0 1px var(--seam);
+  cursor: pointer;
 }
 
 .store-marker-numbered {
   width: 22px;
   height: 22px;
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #14181c;
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   font-weight: 700;
   line-height: 1;
-}
-
-.store-marker {
-  cursor: pointer;
+  border: 2px solid var(--gunmetal);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 .store-marker.selected-marker {
-  outline: 3px solid #1a73e8;
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
 .office-marker {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #fb8500;
-  border: 3px solid white;
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  border: 3px solid var(--gunmetal);
+  box-shadow: 0 0 0 1px var(--accent-dim);
+  transform: rotate(45deg);
 }
+
+/* ============================================================
+   Modals (Settings, Edit Drivers, Import Orders, Office Location)
+   ============================================================ */
 
 .import-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(6, 8, 10, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -575,9 +983,10 @@ body {
 .import-modal {
   width: min(520px, calc(100% - 2rem));
   max-height: min(640px, calc(100% - 2rem));
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  background: var(--plate);
+  border: 1px solid var(--seam);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -588,30 +997,41 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--seam);
+  background: var(--plate-raised);
 }
 
 .import-modal-header h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
 }
 
 .import-modal-hint {
   margin: 0.75rem 1rem 0;
-  color: #666;
-  font-size: 0.85rem;
+  color: var(--paper-dim);
+  font-size: 0.8rem;
 }
 
 .import-file-picker {
   margin: 0.75rem 1rem 0;
   display: block;
   padding: 0.6rem 0.75rem;
-  border: 1px dashed #bbb;
-  border-radius: 6px;
+  border: 1px dashed var(--seam);
+  border-radius: var(--radius);
   text-align: center;
-  font-size: 0.85rem;
-  color: #444;
+  font-size: 0.8rem;
+  color: var(--paper-dim);
   cursor: pointer;
+}
+
+.import-file-picker:hover {
+  border-color: var(--accent);
+  color: var(--paper);
 }
 
 .import-file-picker input {
@@ -621,20 +1041,23 @@ body {
 .import-quickbooks-link {
   display: block;
   margin: 0.5rem 1rem 0;
-  font-size: 0.8rem;
-  color: #1a73e8;
+  font-size: 0.75rem;
+  color: var(--signal-blue);
   text-align: center;
 }
 
 .import-source-badge {
   display: inline-block;
   margin-left: 0.5rem;
-  padding: 0.05rem 0.4rem;
-  border-radius: 999px;
-  background: #e8f0fe;
-  color: #1a73e8;
-  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius);
+  background: var(--plate-sunken);
+  border: 1px solid var(--seam);
+  color: var(--paper-dim);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
   font-weight: 600;
+  text-transform: uppercase;
 }
 
 .import-pending-list {
@@ -644,61 +1067,64 @@ body {
 }
 
 .import-empty {
-  color: #888;
-  font-size: 0.85rem;
+  color: var(--paper-faint);
+  font-size: 0.8rem;
 }
 
 .new-driver-form {
   margin: 0.75rem 1rem 0;
-  background: #f7f9fc;
-  border-color: #d7e3f7;
+  background: var(--plate-sunken);
+  border-color: var(--seam);
 }
 
 .import-pending-item {
-  border: 1px solid #eee;
-  border-radius: 6px;
+  border: 1px solid var(--seam);
+  border-radius: var(--radius);
   padding: 0.6rem 0.75rem;
   margin-top: 0.75rem;
+  background: var(--plate-raised);
 }
 
 .import-pending-filename {
-  font-size: 0.8rem;
-  color: #888;
+  font-size: 0.75rem;
+  color: var(--paper-faint);
   margin-bottom: 0.4rem;
   word-break: break-all;
+  font-family: var(--font-mono);
 }
 
 .import-status {
-  font-size: 0.85rem;
-  color: #666;
+  font-size: 0.8rem;
+  color: var(--paper-dim);
 }
 
 .import-status-error {
-  color: #e63946;
+  color: var(--hazard-red);
 }
 
 .import-invoice-number {
-  font-size: 0.8rem;
-  color: #666;
+  font-size: 0.75rem;
+  color: var(--paper-dim);
   margin-bottom: 0.4rem;
+  font-family: var(--font-mono);
 }
 
 .import-review-form label {
   display: block;
-  font-size: 0.75rem;
-  color: #666;
+  font-size: 0.7rem;
+  color: var(--paper-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--font-display);
   margin-top: 0.5rem;
 }
 
 .import-review-form input {
   display: block;
   width: 100%;
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
   font-size: 0.85rem;
-  padding: 0.3rem 0.4rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
+  padding: 0.35rem 0.5rem;
 }
 
 .import-review-row {
@@ -712,8 +1138,9 @@ body {
 }
 
 .office-current-coordinates {
-  font-size: 0.8rem;
-  color: #666;
+  font-size: 0.75rem;
+  color: var(--paper-dim);
+  font-family: var(--font-mono);
 }
 
 .import-review-row .time-window-cell {
@@ -736,26 +1163,59 @@ body {
   margin-top: 0.6rem;
 }
 
+.confirm-delete-all-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin: 1rem;
+}
+
 .import-review-actions button {
   margin: 0;
   padding: 0.35rem 0.75rem;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
 }
 
 .import-error {
-  color: #e63946;
+  color: var(--hazard-red);
   font-size: 0.8rem;
   margin-top: 0.4rem;
 }
 
 .import-approximate-warning {
-  color: #b3690a;
-  font-size: 0.75rem;
+  color: var(--caution-yellow);
+  font-size: 0.7rem;
   margin-top: 0.3rem;
 }
 
+.import-suggested-address {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--seam);
+  border-left: 2px solid var(--signal-blue);
+  border-radius: var(--radius);
+  background: var(--plate-raised);
+  font-size: 0.75rem;
+}
+
+.import-suggested-address span {
+  flex: 1;
+  color: var(--paper-dim);
+}
+
+.import-suggested-address button {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  color: var(--signal-blue);
+  border-color: var(--signal-blue);
+}
+
 .approximate-location-flag {
-  color: #b3690a;
+  color: var(--caution-yellow);
   cursor: help;
 }
 
@@ -763,14 +1223,14 @@ body {
   position: absolute;
   bottom: 1rem;
   left: 320px;
-  background: #e63946;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-}
-
-button {
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  margin: 0.75rem 0;
+  background: var(--hazard-red);
+  color: #1a0000;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.6rem 1rem 0.6rem 1rem;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  border-top: 4px solid;
+  border-image: repeating-linear-gradient(135deg, #1a0000 0 8px, var(--caution-yellow) 8px 16px) 4;
 }

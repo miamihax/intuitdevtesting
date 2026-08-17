@@ -37,7 +37,8 @@ export default function SettingsModal({ settings, onSettingsChange, onClose, onE
               Automatically add imported orders
               <span className="settings-toggle-hint">
                 Skips manual review — imports are added as orders as soon as OCR/QuickBooks extracts a name,
-                address, and a locatable location. Anything missing still waits for review.
+                address, and an exact geocode match. Anything missing, or an address that only resolves to its
+                ZIP code's general area, still waits for review.
               </span>
             </span>
           </label>
@@ -58,6 +59,46 @@ export default function SettingsModal({ settings, onSettingsChange, onClose, onE
                 onClick={() => updateSetting({ distance_unit: 'km' })}
               >
                 km
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-menu-item settings-unit-row">
+            <span>Time format</span>
+            <div className="unit-toggle-buttons">
+              <button
+                type="button"
+                className={settings.time_format === '12h' ? 'unit-toggle-active' : undefined}
+                onClick={() => updateSetting({ time_format: '12h' })}
+              >
+                12h
+              </button>
+              <button
+                type="button"
+                className={settings.time_format === '24h' ? 'unit-toggle-active' : undefined}
+                onClick={() => updateSetting({ time_format: '24h' })}
+              >
+                24h
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-menu-item settings-unit-row">
+            <span>Theme</span>
+            <div className="unit-toggle-buttons">
+              <button
+                type="button"
+                className={settings.theme === 'dark' ? 'unit-toggle-active' : undefined}
+                onClick={() => updateSetting({ theme: 'dark' })}
+              >
+                Dark
+              </button>
+              <button
+                type="button"
+                className={settings.theme === 'light' ? 'unit-toggle-active' : undefined}
+                onClick={() => updateSetting({ theme: 'light' })}
+              >
+                Light
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from ..data import DRIVERS, STORES, save_stores
+from ..geocode import geocode_address
 from ..models import (
     Driver,
     DriverRoute,
@@ -9,6 +10,7 @@ from ..models import (
     ReorderRouteRequest,
     ResequenceRouteRequest,
     Store,
+    UpdateStoreRequest,
 )
 from ..optimizer import build_route_for_order, build_routes, order_for_strategy
 
@@ -20,6 +22,41 @@ def list_stores() -> list[Store]:
     return STORES
 
 
+@router.put("/stores/{store_id}", response_model=Store)
+def update_store(store_id: str, request: UpdateStoreRequest) -> Store:
+    store = next((s for s in STORES if s.id == store_id), None)
+    if store is None:
+        raise HTTPException(status_code=404, detail="Unknown store id")
+
+    address = request.address
+    coordinates = store.coordinates
+    approximate_location = store.approximate_location
+
+    # Only re-geocode when the address text actually changed -- editing the
+    # name/time window/case count shouldn't cost a geocode call or touch
+    # coordinates that are still correct.
+    if request.address != store.address:
+        geocode_result = geocode_address(request.address, request.name)
+        if geocode_result is None:
+            raise HTTPException(status_code=422, detail="Could not locate that address — check it and try again")
+        coordinates = geocode_result.coordinates
+        approximate_location = geocode_result.approximate
+        # A name search can land on a different (correct) address than what
+        # was typed -- prefer that so what's shown always matches the
+        # coordinates actually being used for routing.
+        address = geocode_result.resolved_address or request.address
+
+    store.name = request.name
+    store.address = address
+    store.coordinates = coordinates
+    store.approximate_location = approximate_location
+    store.time_window_start = request.time_window_start
+    store.time_window_end = request.time_window_end
+    store.case_count = request.case_count
+    save_stores()
+    return store
+
+
 @router.delete("/stores/{store_id}")
 def delete_store(store_id: str) -> dict[str, bool]:
     store = next((s for s in STORES if s.id == store_id), None)
@@ -28,6 +65,14 @@ def delete_store(store_id: str) -> dict[str, bool]:
     STORES.remove(store)
     save_stores()
     return {"ok": True}
+
+
+@router.delete("/stores")
+def delete_all_stores() -> dict[str, int]:
+    count = len(STORES)
+    STORES.clear()
+    save_stores()
+    return {"deleted": count}
 
 
 @router.get("/drivers", response_model=list[Driver])
@@ -54,6 +99,9 @@ def optimize(request: OptimizeRequest) -> OptimizeResponse:
         if missing_drivers:
             raise HTTPException(status_code=404, detail=f"Unknown driver ids: {missing_drivers}")
         drivers = [driver_by_id[i] for i in request.driver_ids]
+
+    if not drivers:
+        raise HTTPException(status_code=400, detail="No driver selected. Add a driver before optimizing routes.")
 
     routes, unassigned = build_routes(drivers, stores)
     return OptimizeResponse(routes=routes, unassigned_store_ids=unassigned)
@@ -86,5 +134,5 @@ def resequence_route(request: ResequenceRouteRequest) -> DriverRoute:
         raise HTTPException(status_code=404, detail=f"Unknown store ids: {missing}")
 
     stores = [by_id[i] for i in request.store_ids]
-    ordered = order_for_strategy(request.strategy, driver.depot, stores)
+    ordered = order_for_strategy(request.strategy, driver, stores)
     return build_route_for_order(driver, ordered)

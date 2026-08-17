@@ -5,7 +5,7 @@ from pathlib import Path
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
-from .geocode import geocode_address
+from .geocode import geocode_address, suggest_address_via_web
 from .import_store import PendingImport, add_pending, pop_pending, update_pending
 from .invoice_parser import parse_invoice_fields
 from .ocr import extract_text
@@ -42,17 +42,37 @@ class IncomingInvoiceHandler(FileSystemEventHandler):
             fields = parse_invoice_fields(text)
             address = fields.get("address")
             name = fields.get("location")
-            geocode_result = geocode_address(address) if address else None
+            # Web search is a human-reviewed suggestion here, not something
+            # applied automatically -- keep it out of the main geocode call
+            # (use_web_fallback=False) and fetch it separately below.
+            geocode_result = geocode_address(address, name, use_web_fallback=False) if address else None
+            # A name search can land on a different (correct) address than
+            # what OCR read off the invoice -- prefer that over the raw
+            # OCR'd text so what's shown always matches the coordinates.
+            resolved_address = (geocode_result.resolved_address if geocode_result else None) or address
+
+            suggested_address = None
+            if name and address and (geocode_result is None or geocode_result.approximate):
+                web_result = suggest_address_via_web(address, name)
+                suggested_address = web_result.resolved_address if web_result else None
 
             # Auto-add only fires when OCR extracted enough to stand on its
-            # own (a name, an address, and a successful geocode) -- anything
-            # short of that still needs a human to fill the gap, so it falls
-            # through to the normal "ready for review" pending card.
-            if get_settings().auto_add_imports and name and address and geocode_result is not None:
+            # own (a name, an address, and an exact geocode) -- a ZIP-centroid
+            # fallback match (geocode_result.approximate) means the exact
+            # address wasn't found, so that -- like anything else short of
+            # a full match -- still needs a human to confirm the location,
+            # falling through to the normal "ready for review" pending card.
+            if (
+                get_settings().auto_add_imports
+                and name
+                and address
+                and geocode_result is not None
+                and not geocode_result.approximate
+            ):
                 add_store(
                     invoice_number=fields.get("invoice_number"),
                     name=name,
-                    address=address,
+                    address=resolved_address,
                     coordinates=geocode_result.coordinates,
                     approximate_location=geocode_result.approximate,
                     time_window_start=fields.get("time_window_start"),
@@ -66,9 +86,10 @@ class IncomingInvoiceHandler(FileSystemEventHandler):
                     status="ready",
                     invoice_number=fields.get("invoice_number"),
                     name=name,
-                    address=address,
+                    address=resolved_address,
                     coordinates=geocode_result.coordinates if geocode_result else None,
                     approximate_location=geocode_result.approximate if geocode_result else False,
+                    suggested_address=suggested_address,
                     case_count=fields.get("case_count"),
                     time_window_start=fields.get("time_window_start"),
                     time_window_end=fields.get("time_window_end"),

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { Driver, DriverRoute, RouteStrategy, Store } from '../types'
+import type { Driver, DriverRoute, RouteStrategy, Settings, Store } from '../types'
+import { formatTime } from '../utils/time'
 
 const KM_TO_MI = 0.621371
 
@@ -31,6 +32,7 @@ interface SidebarProps {
   onEditDrivers: () => void
   onOpenSettings: () => void
   distanceUnit: 'mi' | 'km'
+  timeFormat: Settings['time_format']
 }
 
 export default function Sidebar({
@@ -44,6 +46,7 @@ export default function Sidebar({
   onEditDrivers,
   onOpenSettings,
   distanceUnit,
+  timeFormat,
 }: SidebarProps) {
   // An empty selection means "all drivers" for stat purposes too.
   const visibleRoutes =
@@ -145,6 +148,9 @@ export default function Sidebar({
                   />
                   <strong>{driver.name}</strong>
                 </label>
+                <div className="driver-shift">
+                  Shift {formatTime(driver.shift_start, timeFormat)}–{formatTime(driver.shift_end, timeFormat)}
+                </div>
                 {route && (
                   <>
                     <div className="route-stats-row">
@@ -166,7 +172,8 @@ export default function Sidebar({
                       </select>
                     </div>
                     <div>
-                      Est. finish: <strong>{route.estimated_finish_time}</strong>
+                      Departs <strong>{formatTime(driver.shift_start, timeFormat)}</strong> · Est. finish:{' '}
+                      <strong>{formatTime(route.estimated_finish_time, timeFormat)}</strong>
                       {route.estimate_source === 'straight_line_estimate' && (
                         <span className="estimate-note"> (rough estimate — live routing unreachable)</span>
                       )}
@@ -191,7 +198,7 @@ export default function Sidebar({
                           onDragEnd={handleStopDragEnd}
                         >
                           <span className="stop-drag-handle">⠿</span>
-                          {stop.sequence}. {stop.store.name} — {stop.eta}
+                          {stop.sequence}. {stop.store.name} — {stop.eta ? formatTime(stop.eta, timeFormat) : '—'}
                           {stop.on_time === false && <span className="late-flag"> ⚠ outside time window</span>}
                         </li>
                       ))}

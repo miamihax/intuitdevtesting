@@ -10,3 +10,4 @@ pdf2image>=1.17
 pypdf>=5.0
 watchdog>=4.0
 Pillow>=10.0
+vercel_blob>=0.4.2

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import type { DriverRoute, Store } from '../types'
+import type { DriverRoute, Settings, Store } from '../types'
+import { formatTime } from '../utils/time'
 
 interface OrderRow {
   orderId: string
@@ -19,9 +20,16 @@ interface OrdersPanelProps {
   onImportOrders: () => void
   onOptimize: (storeIds?: string[]) => void
   onUpdateStore: (storeId: string, patch: Partial<Store>) => void
+  onPersistStore: (storeId: string) => void
   onDeleteStore: (storeId: string) => void
+  onDeleteAllStores: () => void
   selectedOrderIds: string[]
   onSelectedOrderIdsChange: (updater: string[] | ((prev: string[]) => string[])) => void
+  onFocusOrder: (orderId: string) => void
+  driverSelected: boolean
+  showAllStops: boolean
+  onToggleShowAllStops: () => void
+  timeFormat: Settings['time_format']
 }
 
 function buildRows(stores: Store[], routes: DriverRoute[]): OrderRow[] {
@@ -53,13 +61,21 @@ export default function OrdersPanel({
   onImportOrders,
   onOptimize,
   onUpdateStore,
+  onPersistStore,
   onDeleteStore,
+  onDeleteAllStores,
   selectedOrderIds,
   onSelectedOrderIdsChange,
+  onFocusOrder,
+  driverSelected,
+  showAllStops,
+  onToggleShowAllStops,
+  timeFormat,
 }: OrdersPanelProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [deleteMode, setDeleteMode] = useState(false)
+  const [confirmDeleteAllOpen, setConfirmDeleteAllOpen] = useState(false)
   const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null)
   const [optimizeMenuOpen, setOptimizeMenuOpen] = useState(false)
   const optimizeMenuRef = useRef<HTMLDivElement>(null)
@@ -78,6 +94,7 @@ export default function OrdersPanel({
   }, [optimizeMenuOpen])
 
   const handleRowClick = (index: number, orderId: string, event: React.MouseEvent) => {
+    onFocusOrder(orderId)
     if (event.shiftKey && lastClickedIndex !== null) {
       const start = Math.min(lastClickedIndex, index)
       const end = Math.max(lastClickedIndex, index)
@@ -151,6 +168,16 @@ export default function OrdersPanel({
         >
           {deleteMode ? 'Done Deleting' : 'Delete Orders'}
         </button>
+        {deleteMode && (
+          <button className="delete-all-orders-button" onClick={() => setConfirmDeleteAllOpen(true)}>
+            Delete All Orders
+          </button>
+        )}
+        {driverSelected && (
+          <button className="show-all-stops-button" onClick={onToggleShowAllStops}>
+            {showAllStops ? 'Show Driver Stops' : 'Show All Stops'}
+          </button>
+        )}
       </div>
 
       {!collapsed && (
@@ -176,12 +203,14 @@ export default function OrdersPanel({
                       <input
                         value={row.location}
                         onChange={(e) => onUpdateStore(row.orderId, { name: e.target.value })}
+                        onBlur={() => onPersistStore(row.orderId)}
                       />
                     </td>
                     <td>
                       <input
                         value={row.address}
                         onChange={(e) => onUpdateStore(row.orderId, { address: e.target.value })}
+                        onBlur={() => onPersistStore(row.orderId)}
                       />
                     </td>
                     <td className="time-window-cell">
@@ -189,12 +218,14 @@ export default function OrdersPanel({
                         type="time"
                         value={row.timeWindowStart}
                         onChange={(e) => onUpdateStore(row.orderId, { time_window_start: e.target.value })}
+                        onBlur={() => onPersistStore(row.orderId)}
                       />
                       <span> – </span>
                       <input
                         type="time"
                         value={row.timeWindowEnd}
                         onChange={(e) => onUpdateStore(row.orderId, { time_window_end: e.target.value })}
+                        onBlur={() => onPersistStore(row.orderId)}
                       />
                     </td>
                     <td>
@@ -206,6 +237,7 @@ export default function OrdersPanel({
                         onChange={(e) =>
                           onUpdateStore(row.orderId, { case_count: Number(e.target.value) || 0 })
                         }
+                        onBlur={() => onPersistStore(row.orderId)}
                       />
                     </td>
                     <td>{row.stopNumber ?? '—'}</td>
@@ -230,7 +262,7 @@ export default function OrdersPanel({
                       )}
                     </td>
                     <td>
-                      {row.timeWindowStart} - {row.timeWindowEnd}
+                      {formatTime(row.timeWindowStart, timeFormat)} - {formatTime(row.timeWindowEnd, timeFormat)}
                     </td>
                     <td>{row.caseCount}</td>
                     <td>{row.stopNumber ?? '—'}</td>
@@ -252,6 +284,40 @@ export default function OrdersPanel({
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {confirmDeleteAllOpen && (
+        <div className="import-modal-overlay" onClick={() => setConfirmDeleteAllOpen(false)}>
+          <div className="import-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="import-modal-header">
+              <h2>Delete All Orders</h2>
+              <button
+                className="collapse-toggle"
+                onClick={() => setConfirmDeleteAllOpen(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="import-modal-hint">
+              This permanently deletes all {stores.length} order{stores.length === 1 ? '' : 's'}. This can't be
+              undone.
+            </p>
+            <div className="confirm-delete-all-actions">
+              <button onClick={() => setConfirmDeleteAllOpen(false)}>Cancel</button>
+              <button
+                className="delete-all-orders-button"
+                onClick={() => {
+                  onDeleteAllStores()
+                  setConfirmDeleteAllOpen(false)
+                  setDeleteMode(false)
+                }}
+              >
+                Delete All
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

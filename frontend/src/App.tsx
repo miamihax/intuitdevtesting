@@ -15,9 +15,15 @@ import type {
   Settings,
   Store,
   UpdateDriverFields,
+  UpdateStoreFields,
 } from './types'
 
-const DEFAULT_SETTINGS: Settings = { auto_add_imports: false, distance_unit: 'mi' }
+const DEFAULT_SETTINGS: Settings = {
+  auto_add_imports: false,
+  distance_unit: 'mi',
+  time_format: '24h',
+  theme: 'dark',
+}
 
 export default function App() {
   const [stores, setStores] = useState<Store[]>([])
@@ -34,6 +40,12 @@ export default function App() {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false)
   const [office, setOffice] = useState<OfficeLocation | null>(null)
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
+
+  // The palette itself lives in CSS custom properties (index.css) keyed off
+  // this attribute -- swapping it is all it takes to flip dark/light.
+  useEffect(() => {
+    document.documentElement.dataset.theme = settings.theme
+  }, [settings.theme])
 
   useEffect(() => {
     Promise.all([api.getStores(), api.getDrivers(), api.getOffice(), api.getSettings()])
@@ -66,16 +78,17 @@ export default function App() {
   }, [])
 
   const handleOptimize = (storeIds?: string[]) => {
+    if (selectedDriverIds.length === 0) {
+      setError('No driver selected. Select at least one driver before optimizing routes.')
+      return
+    }
     setLoading(true)
     setError(null)
-    // An empty driver selection means "all drivers", matching how the
-    // checkboxes already behave for filtering the map/sidebar display.
-    const driverIds = selectedDriverIds.length > 0 ? selectedDriverIds : undefined
+    const driverIds = selectedDriverIds
     api
       .optimize(storeIds, driverIds)
       .then((result) => {
         setRoutes((prev) => {
-          if (!driverIds) return result.routes
           // Scoped to specific drivers: keep everyone else's existing route
           // and only replace the ones that were just recomputed.
           const untouched = prev.filter((r) => !driverIds.includes(r.driver.id))
@@ -150,6 +163,30 @@ export default function App() {
     setStores((prev) => prev.map((store) => (store.id === storeId ? { ...store, ...patch } : store)))
   }
 
+  // Persists whatever's currently in local state for this store — called on
+  // blur rather than on every keystroke. If the address changed, the backend
+  // re-geocodes it and may report back a different (corrected) address and
+  // coordinates than what was typed -- e.g. a name search finding the real
+  // place behind a bad street address -- so reconcile local state with
+  // whatever it actually resolved, rather than trusting the local edit.
+  const handlePersistStore = (storeId: string) => {
+    const store = stores.find((s) => s.id === storeId)
+    if (!store) return
+    const fields: UpdateStoreFields = {
+      name: store.name,
+      address: store.address,
+      time_window_start: store.time_window_start,
+      time_window_end: store.time_window_end,
+      case_count: store.case_count,
+    }
+    api
+      .updateStore(storeId, fields)
+      .then((updated) => {
+        setStores((prev) => prev.map((s) => (s.id === storeId ? updated : s)))
+      })
+      .catch((e: Error) => setError(e.message))
+  }
+
   const handleStoreImported = (store: Store) => {
     setStores((prev) => [...prev, store])
   }
@@ -160,6 +197,19 @@ export default function App() {
       .then(() => {
         setStores((prev) => prev.filter((store) => store.id !== storeId))
         setSelectedOrderIds((prev) => prev.filter((id) => id !== storeId))
+      })
+      .catch((e: Error) => setError(e.message))
+  }
+
+  const handleDeleteAllStores = () => {
+    api
+      .deleteAllStores()
+      .then(() => {
+        setStores([])
+        setSelectedOrderIds([])
+        // Every order behind existing routes is gone -- stale stop lists
+        // would otherwise keep pointing at deleted stores.
+        setRoutes([])
       })
       .catch((e: Error) => setError(e.message))
   }
@@ -224,6 +274,7 @@ export default function App() {
         onEditDrivers={() => setDriversModalOpen(true)}
         onOpenSettings={() => setSettingsModalOpen(true)}
         distanceUnit={settings.distance_unit}
+        timeFormat={settings.time_format}
       />
       <MapView
         stores={stores}
@@ -236,8 +287,11 @@ export default function App() {
         loading={loading}
         onOptimize={handleOptimize}
         onUpdateStore={handleUpdateStore}
+        onPersistStore={handlePersistStore}
         onDeleteStore={handleDeleteStore}
+        onDeleteAllStores={handleDeleteAllStores}
         onImportOrders={() => setImportModalOpen(true)}
+        timeFormat={settings.time_format}
       />
       {error && <div className="error-banner">{error}</div>}
       {importModalOpen && (

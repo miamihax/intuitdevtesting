@@ -91,6 +91,10 @@ class PendingImport(BaseModel):
     address: str | None = None
     coordinates: Coordinates | None = None  # geocoded from `address`, if found
     approximate_location: bool = False  # True if geocoding fell back to a ZIP-code centroid
+    # A web-search-derived address, offered for the human reviewer to accept
+    # -- set only when `address` itself couldn't be pinned down precisely.
+    # Never applied automatically; see geocode.suggest_address_via_web.
+    suggested_address: str | None = None
     case_count: int | None = None  # pre-filled from QuickBooks line-item quantities, if available
     time_window_start: str | None = None  # OCR-extracted from a delivery note, if present
     time_window_end: str | None = None
@@ -101,7 +105,7 @@ class ConfirmImportRequest(BaseModel):
     name: str
     address: str
     time_window_start: str = "09:00"
-    time_window_end: str = "17:00"
+    time_window_end: str = "19:00"
     case_count: int = 0
 
 
@@ -123,6 +127,13 @@ class Settings(BaseModel):
     # Purely a display preference -- DriverRoute.total_distance_km is always
     # computed and transmitted in km; the frontend converts for display.
     distance_unit: Literal["mi", "km"] = "mi"
+    # Purely a display preference -- times ("HH:MM" shift/window/ETA fields)
+    # are always transmitted as 24-hour clock strings; the frontend
+    # reformats for display.
+    time_format: Literal["24h", "12h"] = "24h"
+    # Purely a display preference -- swaps the frontend's color palette
+    # (dark steel + orange accent, or light + blue accent).
+    theme: Literal["dark", "light"] = "dark"
 
 
 class UpdateDriverRequest(BaseModel):
@@ -130,3 +141,11 @@ class UpdateDriverRequest(BaseModel):
     vehicle_capacity_cases: int
     shift_start: str
     shift_end: str
+
+
+class UpdateStoreRequest(BaseModel):
+    name: str
+    address: str
+    time_window_start: str
+    time_window_end: str
+    case_count: int

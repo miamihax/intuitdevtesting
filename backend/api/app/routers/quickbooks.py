@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from .. import quickbooks as qbo
-from ..geocode import geocode_address
+from ..geocode import geocode_address, suggest_address_via_web
 from ..import_store import PendingImport, add_pending, get_pending, pop_pending, update_pending
 from ..models import Store
 from ..orders import add_store
@@ -62,16 +62,35 @@ def _upsert_pending_from_invoice(invoice_id: str, invoice: dict) -> PendingImpor
     fields = qbo.invoice_to_pending_fields(invoice)
     address = fields.get("address")
     name = fields.get("name")
-    geocode_result = geocode_address(address) if address else None
+    # Web search is a human-reviewed suggestion here, not something applied
+    # automatically -- keep it out of the main geocode call
+    # (use_web_fallback=False) and fetch it separately below.
+    geocode_result = geocode_address(address, name, use_web_fallback=False) if address else None
+    # A name search can land on a different (correct) address than what
+    # QuickBooks has on file -- prefer that so what's shown always matches
+    # the coordinates.
+    resolved_address = (geocode_result.resolved_address if geocode_result else None) or address
+
+    suggested_address = None
+    if name and address and (geocode_result is None or geocode_result.approximate):
+        web_result = suggest_address_via_web(address, name)
+        suggested_address = web_result.resolved_address if web_result else None
 
     # See import_watcher.py for the matching upload-side logic -- auto-add
-    # only fires when there's enough to stand on its own; anything short of
+    # only fires when there's enough to stand on its own, including an
+    # exact geocode (not a ZIP-centroid fallback match); anything short of
     # that still needs a human, so it falls through to the pending queue.
-    if get_settings().auto_add_imports and name and address and geocode_result is not None:
+    if (
+        get_settings().auto_add_imports
+        and name
+        and address
+        and geocode_result is not None
+        and not geocode_result.approximate
+    ):
         store = add_store(
             invoice_number=fields.get("invoice_number"),
             name=name,
-            address=address,
+            address=resolved_address,
             coordinates=geocode_result.coordinates,
             approximate_location=geocode_result.approximate,
             time_window_start=None,
@@ -87,9 +106,10 @@ def _upsert_pending_from_invoice(invoice_id: str, invoice: dict) -> PendingImpor
         file_name=f"QuickBooks Invoice #{fields.get('invoice_number') or invoice_id}",
         invoice_number=fields.get("invoice_number"),
         name=name,
-        address=address,
+        address=resolved_address,
         coordinates=geocode_result.coordinates if geocode_result else None,
         approximate_location=geocode_result.approximate if geocode_result else False,
+        suggested_address=suggested_address,
         case_count=fields.get("case_count"),
     )
     pending = get_pending(pending_id)
