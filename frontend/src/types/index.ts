@@ -12,6 +12,7 @@ export interface Store {
   time_window_end: string
   case_count: number
   approximate_location: boolean
+  invoice_number: string | null
 }
 
 export interface Driver {

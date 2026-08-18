@@ -17,6 +17,9 @@ venv/
 # Uploaded/OCR'd invoice files (see backend/app/import_watcher.py)
 backend/data/
 
+# Local test invoices (real customer data -- never committed)
+testinvoices/
+
 # Editor/OS
 .vscode/
 .idea/

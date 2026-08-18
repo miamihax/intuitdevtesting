@@ -8,6 +8,23 @@ import httpx
 from .geo import haversine_km
 from .models import Coordinates
 
+# Tried before every other provider, no key required: New Jersey's own
+# public geocoding service (NJ Office of GIS), built from the state's
+# parcel/MOD-IV tax-assessor records rather than crowdsourced OSM data. This
+# app only ever delivers to NJ addresses (see stores.json), so this is the
+# authoritative source for the common case -- it already resolves the same
+# highway-abbreviation mismatches ("NJ Rte 36" vs "NJ-36") MapTiler is used
+# for below, with no external account/quota to manage. Naturally scoped to
+# NJ: an out-of-state address just comes back with an empty candidate list,
+# so it falls through the rest of the chain unchanged.
+_NJ_GEOCODE_URL = "https://geo.nj.gov/arcgis/rest/services/Tasks/NJ_Geocode/GeocodeServer/findAddressCandidates"
+# Esri locator scores: 100 = exact match, lower = increasingly loose/fuzzy.
+# Confirmed against a real address ("66 NJ-36, Eatontown, NJ 07724" -> 95.12)
+# -- set well below that so normal abbreviation variance still passes, but
+# high enough to reject a low-confidence guess being applied automatically
+# (several callers save this result without a human reviewing it first).
+_NJ_GEOCODE_MIN_SCORE = 90
+
 # Primary geocoder when MAPTILER_API_KEY is set: MapTiler's forward
 # geocoding is a forgiving free-text search (Mapbox-compatible response
 # shape) rather than Nominatim's strict structured-address parser, so it
@@ -49,13 +66,23 @@ _STATE_ZIP_RE = re.compile(r"\b([A-Z]{2})\s+(\d{5})(?:-\d{4})?\b")
 _NAME_MATCH_MAX_KM = 12.0
 
 _BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
+# Any HTML markup Brave wraps around matched terms in a result's
+# title/description (e.g. "66 <strong>NJ</strong>-36") -- stripped before
+# regex matching below so a tag boundary can't split a house number from
+# the rest of its own address and break the match.
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
 # Best-effort US street address matcher for pulling a real address out of a
 # Brave search result's title/description text (e.g. "123 Main St, Anytown,
 # NJ 07001 · Hours · (555) 555-0100"). Requires exactly the
-# "street, city, ST ZIP" shape -- strict enough to avoid grabbing unrelated
-# digit runs (phone numbers, hours) out of the surrounding text.
+# "street, city, ST ZIP" shape. The street segment's character class is
+# deliberately narrow (letters/digits/". ' # & -" only, no "@"/"·"/etc.) --
+# a looser class here previously let the match run straight through
+# unrelated separator text (a phone number's last few digits, an email
+# address, a "·" bullet) into a real address further along in the same
+# string, producing garbage like "6565 · info@site.com · 5020 US 130,
+# Delran, NJ 08075" instead of just "5020 US 130, Delran, NJ 08075".
 _STREET_ADDRESS_RE = re.compile(
-    r"\b(\d{1,6}\s+[^,\n]{3,60}),\s*([A-Za-z .'-]{2,40}),\s*([A-Z]{2})\s+(\d{5})(?:-\d{4})?\b"
+    r"\b(\d{1,6}[A-Za-z]?\s+[A-Za-z0-9.'#&\-\s]{3,60}),\s*([A-Za-z .'-]{2,40}),\s*([A-Z]{2})\s+(\d{5})(?:-\d{4})?\b"
 )
 # Business-listing sites spell out highway addresses in whatever house style
 # they use ("66 NJ Rte 36", "66 State Route 36") -- Nominatim's parser
@@ -83,6 +110,10 @@ class _SearchHit:
 
 
 def geocode_address(address: str, name: str | None = None, use_web_fallback: bool = True) -> GeocodeResult | None:
+    nj_hit = _nj_state_search(address)
+    if nj_hit is not None:
+        return GeocodeResult(coordinates=nj_hit.coordinates, approximate=False)
+
     maptiler_hit = _maptiler_search(address)
     if maptiler_hit is not None:
         return GeocodeResult(coordinates=maptiler_hit.coordinates, approximate=False)
@@ -344,10 +375,14 @@ def _brave_search_addresses(name: str, address: str) -> list[str]:
     seen: set[str] = set()
     for result in results:
         text = " ".join(filter(None, [result.get("title"), result.get("description")]))
+        text = _HTML_TAG_RE.sub(" ", text)
         match = _STREET_ADDRESS_RE.search(text)
         if not match:
             continue
-        street, city, state, zip_code = (g.strip() for g in match.groups())
+        # Collapse whitespace -- stripped HTML tags (see _HTML_TAG_RE above)
+        # can leave doubled spaces inside a group (e.g. a tag that wrapped
+        # just "NJ" in "66 <strong>NJ</strong>-36").
+        street, city, state, zip_code = (re.sub(r"\s+", " ", g).strip() for g in match.groups())
         # Try the highway-normalized form first -- it's the one more likely
         # to match Nominatim's own address parsing.
         for street_form in filter(None, [_route_address_variant(street, state), street]):
@@ -357,6 +392,34 @@ def _brave_search_addresses(name: str, address: str) -> list[str]:
                 candidates.append(candidate)
 
     return candidates
+
+
+def _nj_state_search(address: str) -> _SearchHit | None:
+    if not address:
+        return None
+    try:
+        response = httpx.get(
+            _NJ_GEOCODE_URL,
+            params={"SingleLine": address, "f": "json", "outSR": 4326, "maxLocations": 1},
+            timeout=6.0,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except httpx.HTTPError:
+        return None
+
+    candidates = data.get("candidates") or []
+    if not candidates:
+        return None
+    candidate = candidates[0]
+    if (candidate.get("score") or 0) < _NJ_GEOCODE_MIN_SCORE:
+        return None
+
+    location = candidate.get("location") or {}
+    lng, lat = location.get("x"), location.get("y")
+    if lng is None or lat is None:
+        return None
+    return _SearchHit(coordinates=Coordinates(lat=float(lat), lng=float(lng)), display_name=candidate.get("address", ""))
 
 
 def _maptiler_search(query: str) -> _SearchHit | None:

@@ -108,6 +108,28 @@ export default function OrdersPanel({
     }
   }
 
+  const handleExportLog = () => {
+    // Store IDs are the invoice number itself whenever one was extracted
+    // (see orders.unique_store_id) -- only fall back to the id for orders
+    // imported before the invoice_number field existed, and only when that
+    // id doesn't look like the random "import-XXXXXXXX" fallback used when
+    // no invoice number was found at all.
+    const invoiceNumbers = stores
+      .map((store) => store.invoice_number ?? (store.id.startsWith('import-') ? null : store.id))
+      .filter((n): n is string => Boolean(n))
+
+    const content = invoiceNumbers.length > 0 ? invoiceNumbers.join('\n') + '\n' : ''
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `import-log-${new Date().toISOString().slice(0, 10)}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   const handleOptimizeAll = () => {
     onOptimize()
     setOptimizeMenuOpen(false)
@@ -134,6 +156,7 @@ export default function OrdersPanel({
 
       <div className="orders-panel-actions">
         <button onClick={onImportOrders}>Import Orders</button>
+        <button onClick={handleExportLog}>Export Log</button>
         <div className="optimize-dropdown" ref={optimizeMenuRef}>
           <button onClick={() => setOptimizeMenuOpen((o) => !o)} disabled={loading}>
             {loading ? 'Optimizing…' : 'Optimize Routes'} <span className="dropdown-caret">▾</span>

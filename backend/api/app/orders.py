@@ -44,6 +44,7 @@ def add_store(
         time_window_start=time_window_start or DEFAULT_TIME_WINDOW_START,
         time_window_end=time_window_end or DEFAULT_TIME_WINDOW_END,
         case_count=case_count or 0,
+        invoice_number=invoice_number,
     )
     STORES.append(store)
     save_stores()

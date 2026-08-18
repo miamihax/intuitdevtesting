@@ -17,6 +17,9 @@ class Store(BaseModel):
     time_window_end: str  # "17:00"
     case_count: int  # cases of liquor to deliver
     approximate_location: bool = False  # True if geocoding fell back to a ZIP-code centroid
+    # Set for stores created via the import pipeline (OCR upload or
+    # QuickBooks) -- see orders.add_store. None for orders added by hand.
+    invoice_number: str | None = None
 
 
 class Driver(BaseModel):
