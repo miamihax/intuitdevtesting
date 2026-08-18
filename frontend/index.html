@@ -1,9 +1,22 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OptiRoute</title>
+    <!-- Runs before first paint so a saved theme (cached in localStorage by
+         App.tsx once settings load) applies immediately instead of flashing
+         the "light" attribute above -- see App.tsx's theme useEffect. -->
+    <script>
+      (function () {
+        try {
+          var cached = localStorage.getItem('optiroute-theme')
+          if (cached === 'dark' || cached === 'light') {
+            document.documentElement.dataset.theme = cached
+          }
+        } catch (e) {}
+      })()
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

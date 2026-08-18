@@ -42,9 +42,18 @@ export default function App() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
 
   // The palette itself lives in CSS custom properties (index.css) keyed off
-  // this attribute -- swapping it is all it takes to flip dark/light.
+  // this attribute -- swapping it is all it takes to flip dark/light. Also
+  // cached to localStorage so index.html's pre-paint script can apply it
+  // immediately on the next load instead of flashing the static default
+  // while this app fetches the real settings from the backend.
   useEffect(() => {
     document.documentElement.dataset.theme = settings.theme
+    try {
+      localStorage.setItem('optiroute-theme', settings.theme)
+    } catch {
+      // Unavailable (private browsing, storage disabled, ...) -- theme
+      // still applies for this session, just isn't cached for next time.
+    }
   }, [settings.theme])
 
   useEffect(() => {
