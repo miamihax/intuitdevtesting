@@ -140,7 +140,7 @@ class Settings(BaseModel):
     time_format: Literal["24h", "12h"] = "24h"
     # Purely a display preference -- swaps the frontend's color palette
     # (dark steel + orange accent, or light + blue accent).
-    theme: Literal["dark", "light"] = "dark"
+    theme: Literal["dark", "light"] = "light"
 
 
 class UpdateDriverRequest(BaseModel):

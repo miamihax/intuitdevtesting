@@ -22,7 +22,7 @@ const DEFAULT_SETTINGS: Settings = {
   auto_add_imports: false,
   distance_unit: 'mi',
   time_format: '24h',
-  theme: 'dark',
+  theme: 'light',
 }
 
 export default function App() {
