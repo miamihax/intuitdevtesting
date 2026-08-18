@@ -2,7 +2,7 @@ import json
 import os
 from typing import Any
 
-import requests
+import httpx
 import vercel_blob
 
 # Vercel's filesystem is read-only outside /tmp, and /tmp itself is wiped on
@@ -23,7 +23,7 @@ def load_json(pathname: str) -> Any | None:
     blob = next((b for b in listing.get("blobs", []) if b["pathname"] == pathname), None)
     if blob is None:
         return None
-    response = requests.get(blob["url"], timeout=10)
+    response = httpx.get(blob["url"], timeout=10)
     response.raise_for_status()
     return response.json()
 

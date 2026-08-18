@@ -11,3 +11,8 @@ pypdf>=5.0
 watchdog>=4.0
 Pillow>=10.0
 vercel_blob>=0.4.2
+# vercel_blob's own dependencies -- Vercel's build doesn't resolve these
+# transitively from vercel_blob's metadata, so they need to be listed here
+# directly or the deployed function fails to import with ModuleNotFoundError.
+requests>=2.31
+tqdm>=4.66
