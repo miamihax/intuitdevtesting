@@ -141,12 +141,23 @@ def suggest_address_via_web(
         zip_query = _zip_centroid_query(address)
         zip_hit = _search(zip_query) if zip_query else None
 
-    for candidate in _brave_search_addresses(name, address):
+    candidates = _brave_search_addresses(name, address)
+    for candidate in candidates:
         hit = _search(candidate)
         if hit is None:
             continue
         if zip_hit is None or haversine_km(hit.coordinates, zip_hit.coordinates) <= _NAME_MATCH_MAX_KM:
             return GeocodeResult(coordinates=hit.coordinates, approximate=False, resolved_address=candidate)
+
+    # None of the candidates independently geocode -- OSM sometimes has no
+    # address point at all for a given house number (rural highways, strip
+    # malls with thin coverage), no matter how the street name is phrased.
+    # Still surface the best candidate's address text as a suggestion: a
+    # human reviewer can recognize it's correct even without a precise pin,
+    # which beats showing nothing. Coordinates fall back to the ZIP centroid
+    # (still flagged approximate) since that's the best guess available.
+    if candidates and zip_hit is not None:
+        return GeocodeResult(coordinates=zip_hit.coordinates, approximate=True, resolved_address=candidates[0])
 
     return None
 
