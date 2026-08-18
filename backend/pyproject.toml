@@ -15,6 +15,9 @@ dependencies = [
     "pypdf>=5.0",
     "watchdog>=4.0",
     "Pillow>=10.0",
+    "vercel_blob>=0.4.2",
+    "requests>=2.31",
+    "tqdm>=4.66",
 ]
 
 [tool.vercel]
