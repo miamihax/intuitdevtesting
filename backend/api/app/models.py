@@ -91,10 +91,14 @@ class PendingImport(BaseModel):
     address: str | None = None
     coordinates: Coordinates | None = None  # geocoded from `address`, if found
     approximate_location: bool = False  # True if geocoding fell back to a ZIP-code centroid
-    # A web-search-derived address, offered for the human reviewer to accept
-    # -- set only when `address` itself couldn't be pinned down precisely.
-    # Never applied automatically; see geocode.suggest_address_via_web.
+    # An alternate address, offered for the human reviewer to accept -- set
+    # only when `address` itself couldn't be pinned down precisely. Never
+    # applied automatically; see import_watcher.py / routers/quickbooks.py.
     suggested_address: str | None = None
+    # Where `suggested_address` came from: "bill_to" (the invoice's Bill To
+    # section resolved precisely when the delivery address didn't) or
+    # "web_search" (geocode.suggest_address_via_web).
+    suggested_address_source: str | None = None
     case_count: int | None = None  # pre-filled from QuickBooks line-item quantities, if available
     time_window_start: str | None = None  # OCR-extracted from a delivery note, if present
     time_window_end: str | None = None

@@ -52,9 +52,24 @@ class IncomingInvoiceHandler(FileSystemEventHandler):
             resolved_address = (geocode_result.resolved_address if geocode_result else None) or address
 
             suggested_address = None
+            suggested_address_source = None
             if name and address and (geocode_result is None or geocode_result.approximate):
-                web_result = suggest_address_via_web(address, name)
-                suggested_address = web_result.resolved_address if web_result else None
+                # Small independent stores often bill and ship to the same
+                # place -- try the invoice's Bill To address before falling
+                # back to a generic web search, since it's real data off
+                # the document itself rather than a guess.
+                bill_to_address = fields.get("bill_to_address")
+                if bill_to_address:
+                    bill_result = geocode_address(bill_to_address, name, use_web_fallback=False)
+                    if bill_result is not None and not bill_result.approximate:
+                        suggested_address = bill_result.resolved_address or bill_to_address
+                        suggested_address_source = "bill_to"
+
+                if suggested_address is None:
+                    web_result = suggest_address_via_web(address, name)
+                    if web_result is not None:
+                        suggested_address = web_result.resolved_address
+                        suggested_address_source = "web_search"
 
             # Auto-add only fires when OCR extracted enough to stand on its
             # own (a name, an address, and an exact geocode) -- a ZIP-centroid
@@ -90,6 +105,7 @@ class IncomingInvoiceHandler(FileSystemEventHandler):
                     coordinates=geocode_result.coordinates if geocode_result else None,
                     approximate_location=geocode_result.approximate if geocode_result else False,
                     suggested_address=suggested_address,
+                    suggested_address_source=suggested_address_source,
                     case_count=fields.get("case_count"),
                     time_window_start=fields.get("time_window_start"),
                     time_window_end=fields.get("time_window_end"),

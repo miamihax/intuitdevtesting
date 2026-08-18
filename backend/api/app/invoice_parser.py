@@ -34,6 +34,16 @@ _SHIP_TO_ANCHOR_RE = re.compile(
 # enough to cover a boxed section (name, street, city/state/zip, phone)
 # but narrow enough to not run into unrelated content further down.
 _SHIP_TO_WINDOW = 300
+# Same idea as _SHIP_TO_ANCHOR_RE/_SHIP_TO_WINDOW, but for the "Bill To"
+# section -- used as a fallback geocoding candidate when the delivery
+# address itself doesn't resolve to a precise location (small independent
+# stores often bill and ship to the same place, even when their printed
+# delivery address is malformed or too sparse for a geocoder).
+_BILL_TO_ANCHOR_RE = re.compile(
+    r"^[ \t]*bill\s*to\b.*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+_BILL_TO_WINDOW = 300
 # "123 Main St, Suite 4B, Chicago, IL 60601" — a street number through a
 # 5-digit zip. Punctuation (commas, periods, apostrophes, "#", "&", "-") is
 # optional throughout since OCR frequently drops or garbles it, and unit
@@ -87,9 +97,18 @@ def parse_invoice_fields(text: str) -> dict[str, str | int | None]:
 
     address = re.sub(r"\s+", " ", address_match.group(0)).strip() if address_match else None
 
+    bill_to_address = None
+    bill_to_anchor = _BILL_TO_ANCHOR_RE.search(text)
+    if bill_to_anchor:
+        bill_window = text[bill_to_anchor.end() : bill_to_anchor.end() + _BILL_TO_WINDOW]
+        bill_window_match = _ADDRESS_RE.search(bill_window)
+        if bill_window_match:
+            bill_to_address = re.sub(r"\s+", " ", bill_window_match.group(0)).strip()
+
     return {
         "invoice_number": invoice_match.group(1).strip(" .-") if invoice_match else None,
         "address": address,
+        "bill_to_address": bill_to_address if bill_to_address != address else None,
         "location": _extract_location(text, last_address_match),
         "case_count": sum(int(n) for n in case_matches) if case_matches else None,
         "time_window_start": time_window_start,

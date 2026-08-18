@@ -174,7 +174,12 @@ export default function ImportOrdersModal({ onClose, onStoreImported }: ImportOr
                   )}
                   {p.suggested_address && p.suggested_address !== editFor(p).address && (
                     <div className="import-suggested-address">
-                      <span>Found via web search: {p.suggested_address}</span>
+                      <span>
+                        {p.suggested_address_source === 'bill_to'
+                          ? 'Found in Bill To section: '
+                          : 'Found via web search: '}
+                        {p.suggested_address}
+                      </span>
                       <button
                         type="button"
                         onClick={() => handleFieldChange(p, { address: p.suggested_address! })}

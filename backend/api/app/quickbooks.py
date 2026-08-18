@@ -133,10 +133,15 @@ def _total_line_quantity(invoice: dict) -> int | None:
 
 
 def invoice_to_pending_fields(invoice: dict) -> dict[str, str | int | None]:
-    address = _format_address(invoice.get("ShipAddr")) or _format_address(invoice.get("BillAddr"))
+    ship_address = _format_address(invoice.get("ShipAddr"))
+    bill_address = _format_address(invoice.get("BillAddr"))
     return {
         "invoice_number": invoice.get("DocNumber"),
         "name": (invoice.get("CustomerRef") or {}).get("name"),
-        "address": address,
+        "address": ship_address or bill_address,
+        # Kept separate from `address` (rather than folded into the same
+        # or-fallback above) so the caller can still try geocoding it when
+        # ShipAddr is present but doesn't resolve to a precise location.
+        "bill_address": bill_address if ship_address else None,
         "case_count": _total_line_quantity(invoice),
     }

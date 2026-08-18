@@ -62,6 +62,7 @@ export interface PendingImport {
   coordinates: Coordinates | null
   approximate_location: boolean
   suggested_address: string | null
+  suggested_address_source: 'bill_to' | 'web_search' | null
   case_count: number | null
   time_window_start: string | null
   time_window_end: string | null

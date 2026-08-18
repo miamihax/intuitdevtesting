@@ -1,11 +1,21 @@
 import os
 import re
+import urllib.parse
 from dataclasses import dataclass
 
 import httpx
 
 from .geo import haversine_km
 from .models import Coordinates
+
+# Primary geocoder when MAPTILER_API_KEY is set: MapTiler's forward
+# geocoding is a forgiving free-text search (Mapbox-compatible response
+# shape) rather than Nominatim's strict structured-address parser, so it
+# resolves messy OCR/invoice text and highway-abbreviation mismatches
+# ("NJ Rte 36" vs "NJ-36") far more often. Falls through to the
+# Nominatim/Overpass/Brave chain below when no key is set or it comes up
+# empty -- same silent-skip pattern as the other optional providers here.
+_MAPTILER_URL = "https://api.maptiler.com/geocoding/{query}.json"
 
 _NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 # OSM's own free, no-API-key query endpoint over the full tagged dataset --
@@ -73,6 +83,24 @@ class _SearchHit:
 
 
 def geocode_address(address: str, name: str | None = None, use_web_fallback: bool = True) -> GeocodeResult | None:
+    maptiler_hit = _maptiler_search(address)
+    if maptiler_hit is not None:
+        return GeocodeResult(coordinates=maptiler_hit.coordinates, approximate=False)
+
+    # The raw address alone can fail (bad house number, OCR typo) even
+    # though MapTiler's free-text search can still place the business when
+    # given its name alongside it -- same idea as the Nominatim name-search
+    # fallback further down, just tried first since MapTiler is more likely
+    # to succeed.
+    if name:
+        maptiler_hit = _maptiler_search(f"{name}, {address}")
+        if maptiler_hit is not None:
+            return GeocodeResult(
+                coordinates=maptiler_hit.coordinates,
+                approximate=False,
+                resolved_address=maptiler_hit.display_name or None,
+            )
+
     for query in _query_variants(address):
         hit = _search(query)
         if hit is not None:
@@ -329,6 +357,48 @@ def _brave_search_addresses(name: str, address: str) -> list[str]:
                 candidates.append(candidate)
 
     return candidates
+
+
+def _maptiler_search(query: str) -> _SearchHit | None:
+    api_key = os.environ.get("MAPTILER_API_KEY")
+    if not api_key or not query:
+        return None
+
+    encoded_query = urllib.parse.quote(query, safe="")
+    try:
+        response = httpx.get(
+            _MAPTILER_URL.format(query=encoded_query),
+            # Restricted to the US -- this app only ever delivers to US
+            # addresses, and it avoids an otherwise-plausible same-name
+            # match landing in the wrong country.
+            params={"key": api_key, "limit": 1, "country": "us"},
+            timeout=6.0,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except httpx.HTTPError:
+        return None
+
+    features = data.get("features") or []
+    if not features:
+        return None
+    feature = features[0]
+
+    # MapTiler still returns a result even when it has no real address point
+    # for the house number (properties.kind == "virtual_street") -- a
+    # synthesized position along the street itself, not a verified match.
+    # Confirmed against known-good coordinates: "street" is accurate to
+    # within ~10m, "virtual_street" can be well off the actual building.
+    # Treat it as no match so the caller falls through to the rest of the
+    # chain instead of confidently reporting a precise geocode that isn't.
+    if feature.get("properties", {}).get("kind") == "virtual_street":
+        return None
+
+    center = feature.get("center") or (feature.get("geometry") or {}).get("coordinates")
+    if not center or len(center) < 2:
+        return None
+    lng, lat = center[0], center[1]
+    return _SearchHit(coordinates=Coordinates(lat=float(lat), lng=float(lng)), display_name=feature.get("place_name", ""))
 
 
 def _search(query: str) -> _SearchHit | None:

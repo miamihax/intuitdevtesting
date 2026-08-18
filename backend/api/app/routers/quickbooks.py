@@ -72,9 +72,23 @@ def _upsert_pending_from_invoice(invoice_id: str, invoice: dict) -> PendingImpor
     resolved_address = (geocode_result.resolved_address if geocode_result else None) or address
 
     suggested_address = None
+    suggested_address_source = None
     if name and address and (geocode_result is None or geocode_result.approximate):
-        web_result = suggest_address_via_web(address, name)
-        suggested_address = web_result.resolved_address if web_result else None
+        # Small independent stores often bill and ship to the same place --
+        # try BillAddr before falling back to a generic web search, since
+        # it's real data QuickBooks has on file rather than a guess.
+        bill_address = fields.get("bill_address")
+        if bill_address:
+            bill_result = geocode_address(bill_address, name, use_web_fallback=False)
+            if bill_result is not None and not bill_result.approximate:
+                suggested_address = bill_result.resolved_address or bill_address
+                suggested_address_source = "bill_to"
+
+        if suggested_address is None:
+            web_result = suggest_address_via_web(address, name)
+            if web_result is not None:
+                suggested_address = web_result.resolved_address
+                suggested_address_source = "web_search"
 
     # See import_watcher.py for the matching upload-side logic -- auto-add
     # only fires when there's enough to stand on its own, including an
@@ -110,6 +124,7 @@ def _upsert_pending_from_invoice(invoice_id: str, invoice: dict) -> PendingImpor
         coordinates=geocode_result.coordinates if geocode_result else None,
         approximate_location=geocode_result.approximate if geocode_result else False,
         suggested_address=suggested_address,
+        suggested_address_source=suggested_address_source,
         case_count=fields.get("case_count"),
     )
     pending = get_pending(pending_id)
