@@ -47,9 +47,14 @@ _BILL_TO_WINDOW = 300
 # "123 Main St, Suite 4B, Chicago, IL 60601" — a street number through a
 # 5-digit zip. Punctuation (commas, periods, apostrophes, "#", "&", "-") is
 # optional throughout since OCR frequently drops or garbles it, and unit
-# numbers ("Suite 4B") mean digits can appear in the street segment too.
+# numbers ("Suite 4B") mean digits can appear in the street segment too. The
+# house number can carry a unit letter with no space before the street name
+# ("25C WASHINGTON ST") -- without allowing that, this fails to match the
+# real address entirely, and the search below latches onto unrelated
+# digit-then-state-zip text further down the page instead (a phone number,
+# another party's address block, ...).
 _ADDRESS_RE = re.compile(
-    r"\d{1,6}\s+[A-Za-z0-9.,'#&\-\s]+?,?\s*[A-Za-z0-9.,'#&\-\s]+?,?\s*[A-Z]{2}\s*\d{5}(?:-\d{4})?",
+    r"\d{1,6}[A-Za-z]?\s+[A-Za-z0-9.,'#&\-\s]+?,?\s*[A-Za-z0-9.,'#&\-\s]+?,?\s*[A-Z]{2}\s*\d{5}(?:-\d{4})?",
 )
 # Each line item's "N/CS" (e.g. "6/CS") states the *pack size* -- how many
 # bottles per case -- not how many cases were ordered. The actual ordered
