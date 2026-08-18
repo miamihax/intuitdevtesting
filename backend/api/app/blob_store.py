@@ -11,9 +11,12 @@ import vercel_blob
 # surfacing as "Unknown driver id" / "Unknown store ids" errors even though
 # nothing was actually deleted. Vercel Blob gives each of those JSON files a
 # durable home instead. Requires a Blob store connected to the project
-# (Storage tab in the Vercel dashboard), which injects BLOB_READ_WRITE_TOKEN.
+# (Storage tab in the Vercel dashboard), which injects BLOB_READ_WRITE_TOKEN --
+# check for the token itself, not just VERCEL, so a deploy without a Blob
+# store connected yet falls back to the (ephemeral but working) /tmp path
+# instead of crashing the whole app at import time.
 def using_blob() -> bool:
-    return bool(os.getenv("VERCEL"))
+    return bool(os.getenv("VERCEL")) and bool(os.getenv("BLOB_READ_WRITE_TOKEN"))
 
 
 def load_json(pathname: str) -> Any | None:
