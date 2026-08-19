@@ -103,12 +103,11 @@ export default function Sidebar({
       {!collapsed && (
       <div className="sidebar-content">
         <div className="sidebar-title-row">
-          <h1>OptiRoute</h1>
+          <h1>A&ARoute</h1>
           <button className="settings-button" onClick={onOpenSettings} aria-label="Settings">
             ⚙
           </button>
         </div>
-        <p className="subtitle">Liquor delivery route planning</p>
 
         <ul className="stats-grid">
           <li>
