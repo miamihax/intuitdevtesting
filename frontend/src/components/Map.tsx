@@ -6,8 +6,9 @@ import OrdersPanel from './OrdersPanel'
 import { formatTime } from '../utils/time'
 
 // Reads like colored conduit runs on a dispatch schematic rather than a
-// pastel chart palette -- desaturated enough to sit on the darkened basemap.
-const ROUTE_COLORS = ['#ff6a1a', '#f2b705', '#3fae6a', '#4d8fac', '#e5484d', '#ece6d8']
+// pastel chart palette -- saturated/bright so numbered stop markers stay
+// legible against the basemap at a glance.
+const ROUTE_COLORS = ['#ff7a1a', '#ffd400', '#22e07a', '#29b6ff', '#ff3b3b', '#ffe6a3']
 
 // Store/address text can come from OCR'd imports or QuickBooks data, so it's
 // not safe to interpolate directly into Popup#setHTML -- escape it first.

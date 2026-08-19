@@ -31,6 +31,7 @@
   --hazard-red: #e5484d; /* destructive / errors only */
   --signal-green: #3fae6a; /* on-time / success */
   --signal-blue: #4d8fac; /* informational secondary route */
+  --marker-glow: #00d1ff; /* unassigned map marker -- deliberately vivid so it reads against the basemap */
 
   /* --- type --- */
   --font-display: 'IBM Plex Sans Condensed', 'Oswald', sans-serif;
@@ -63,6 +64,7 @@
   --caution-yellow: #a8690a;
   --hazard-red: #c0272c;
   --signal-blue: #2b6c8a;
+  --marker-glow: #0090c9;
 }
 
 * {
@@ -448,9 +450,10 @@ label {
 .orders-panel {
   position: absolute;
   bottom: 1rem;
+  left: 1rem;
   right: 1rem;
-  width: min(480px, calc(100% - 2rem));
-  max-height: 40%;
+  width: auto;
+  max-height: 75%;
   background: var(--plate);
   border: 1px solid var(--seam);
   border-radius: var(--radius);
@@ -459,6 +462,30 @@ label {
   flex-direction: column;
   overflow: hidden;
   z-index: 1;
+}
+
+.orders-panel-resize-handle {
+  flex: none;
+  height: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  background: var(--plate-raised);
+  border-bottom: 1px solid var(--seam);
+}
+
+.orders-panel-resize-handle::before {
+  content: '';
+  width: 40px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--seam);
+}
+
+.orders-panel-resize-handle:hover::before,
+.orders-panel-resize-handle.resizing::before {
+  background: var(--accent);
 }
 
 .orders-panel-header {
@@ -515,6 +542,24 @@ label {
 
 .orders-panel-actions {
   justify-content: flex-end;
+  align-items: center;
+}
+
+.orders-date-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: auto;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+}
+
+.orders-date-filter input[type='date'] {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.5rem;
 }
 
 .orders-panel-actions button,
@@ -621,6 +666,8 @@ label {
 }
 
 .orders-panel-body {
+  flex: 1 1 auto;
+  min-height: 0; /* lets this flex child actually shrink to a dragged height instead of forcing the panel to grow around its content */
   overflow-y: auto;
   overflow-x: auto;
 }
@@ -927,25 +974,25 @@ label {
    ============================================================ */
 
 .store-marker {
-  width: 14px;
-  height: 14px;
+  width: 17.5px;
+  height: 17.5px;
   border-radius: 50%;
-  background: var(--signal-blue);
+  background: var(--marker-glow);
   border: 2px solid var(--gunmetal);
-  box-shadow: 0 0 0 1px var(--seam);
+  box-shadow: 0 0 0 1px var(--seam), 0 0 6px rgba(0, 209, 255, 0.6);
   cursor: pointer;
 }
 
 .store-marker-numbered {
-  width: 22px;
-  height: 22px;
+  width: 27.5px;
+  height: 27.5px;
   border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #14181c;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   font-weight: 700;
   line-height: 1;
   border: 2px solid var(--gunmetal);

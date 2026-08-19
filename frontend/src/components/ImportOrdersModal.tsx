@@ -13,6 +13,7 @@ const DEFAULT_FIELDS: ConfirmImportFields = {
   time_window_start: '09:00',
   time_window_end: '19:00',
   case_count: 0,
+  delivery_date: new Date().toISOString().slice(0, 10),
 }
 
 export default function ImportOrdersModal({ onClose, onStoreImported }: ImportOrdersModalProps) {
@@ -189,6 +190,14 @@ export default function ImportOrdersModal({ onClose, onStoreImported }: ImportOr
                     </div>
                   )}
                   <div className="import-review-row">
+                    <label>
+                      Delivery date
+                      <input
+                        type="date"
+                        value={editFor(p).delivery_date}
+                        onChange={(e) => handleFieldChange(p, { delivery_date: e.target.value })}
+                      />
+                    </label>
                     <label className="time-window-cell">
                       Window
                       <input

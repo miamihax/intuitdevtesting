@@ -53,6 +53,7 @@ def update_store(store_id: str, request: UpdateStoreRequest) -> Store:
     store.time_window_start = request.time_window_start
     store.time_window_end = request.time_window_end
     store.case_count = request.case_count
+    store.delivery_date = request.delivery_date
     save_stores()
     return store
 

@@ -20,6 +20,10 @@ class Store(BaseModel):
     # Set for stores created via the import pipeline (OCR upload or
     # QuickBooks) -- see orders.add_store. None for orders added by hand.
     invoice_number: str | None = None
+    # "2026-08-19" -- when this order is scheduled to be delivered. Defaults
+    # to the day it was created (see orders.add_store); None only for orders
+    # persisted before this field existed.
+    delivery_date: str | None = None
 
 
 class Driver(BaseModel):
@@ -114,6 +118,7 @@ class ConfirmImportRequest(BaseModel):
     time_window_start: str = "09:00"
     time_window_end: str = "19:00"
     case_count: int = 0
+    delivery_date: str | None = None  # None defaults to today -- see orders.add_store
 
 
 class OfficeLocation(BaseModel):
@@ -156,3 +161,4 @@ class UpdateStoreRequest(BaseModel):
     time_window_start: str
     time_window_end: str
     case_count: int
+    delivery_date: str

@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import type { DriverRoute, Settings, Store } from '../types'
 import { formatTime } from '../utils/time'
 
+const todayIso = () => new Date().toISOString().slice(0, 10)
+
+const MIN_PANEL_HEIGHT = 160
+
 interface OrderRow {
   orderId: string
   location: string
@@ -11,6 +15,7 @@ interface OrderRow {
   timeWindowEnd: string
   caseCount: number
   stopNumber: number | null
+  deliveryDate: string
 }
 
 interface OrdersPanelProps {
@@ -51,6 +56,7 @@ function buildRows(stores: Store[], routes: DriverRoute[]): OrderRow[] {
     timeWindowEnd: store.time_window_end,
     caseCount: store.case_count,
     stopNumber: stopNumberByStoreId.get(store.id) ?? null,
+    deliveryDate: store.delivery_date ?? todayIso(),
   }))
 }
 
@@ -79,8 +85,17 @@ export default function OrdersPanel({
   const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null)
   const [optimizeMenuOpen, setOptimizeMenuOpen] = useState(false)
   const optimizeMenuRef = useRef<HTMLDivElement>(null)
+  // Empty string = show every order regardless of delivery date.
+  const [dateFilter, setDateFilter] = useState('')
+  // null = not resized yet -- CSS's default max-height governs. Set once the
+  // user drags the handle at the top of the panel; persists until they drag
+  // again (collapsing/expanding via the header toggle doesn't reset it).
+  const [panelHeight, setPanelHeight] = useState<number | null>(null)
+  const [resizing, setResizing] = useState(false)
+  const panelRef = useRef<HTMLDivElement>(null)
 
-  const rows = buildRows(stores, routes)
+  const allRows = buildRows(stores, routes)
+  const rows = dateFilter ? allRows.filter((row) => row.deliveryDate === dateFilter) : allRows
 
   useEffect(() => {
     if (!optimizeMenuOpen) return
@@ -130,6 +145,34 @@ export default function OrdersPanel({
     URL.revokeObjectURL(url)
   }
 
+  // Dragging up should grow the panel, dragging down should shrink it --
+  // the panel is anchored to the bottom of the map (see .orders-panel), so
+  // growing it means moving its top edge toward the cursor, i.e. increasing
+  // height by however far the cursor moved up from the drag's start.
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const panel = panelRef.current
+    if (!panel) return
+    const startY = e.clientY
+    const startHeight = panel.getBoundingClientRect().height
+    // Leave a small gap so the handle never reaches all the way to the map's
+    // top edge (nav controls, etc. live up there).
+    const maxHeight = (panel.parentElement?.getBoundingClientRect().height ?? window.innerHeight) - 24
+    setResizing(true)
+
+    const onMouseMove = (ev: MouseEvent) => {
+      const next = startHeight + (startY - ev.clientY)
+      setPanelHeight(Math.min(maxHeight, Math.max(MIN_PANEL_HEIGHT, next)))
+    }
+    const onMouseUp = () => {
+      setResizing(false)
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
+
   const handleOptimizeAll = () => {
     onOptimize()
     setOptimizeMenuOpen(false)
@@ -141,7 +184,17 @@ export default function OrdersPanel({
   }
 
   return (
-    <div className="orders-panel">
+    <div
+      className="orders-panel"
+      ref={panelRef}
+      style={!collapsed && panelHeight != null ? { height: panelHeight } : undefined}
+    >
+      {!collapsed && (
+        <div
+          className={resizing ? 'orders-panel-resize-handle resizing' : 'orders-panel-resize-handle'}
+          onMouseDown={handleResizeStart}
+        />
+      )}
       <div className="orders-panel-header">
         <h2>Orders</h2>
         <button
@@ -155,6 +208,13 @@ export default function OrdersPanel({
       </div>
 
       <div className="orders-panel-actions">
+        <label className="orders-date-filter">
+          Delivery date
+          <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
+        </label>
+        {dateFilter && (
+          <button onClick={() => setDateFilter('')}>Show All Dates</button>
+        )}
         <button onClick={onImportOrders}>Import Orders</button>
         <button onClick={handleExportLog}>Export Log</button>
         <div className="optimize-dropdown" ref={optimizeMenuRef}>
@@ -211,6 +271,7 @@ export default function OrdersPanel({
                 <th>Order ID</th>
                 <th>Location</th>
                 <th>Address</th>
+                <th>Delivery Date</th>
                 <th>Time Window</th>
                 <th>Cases</th>
                 <th>Stop #</th>
@@ -233,6 +294,14 @@ export default function OrdersPanel({
                       <input
                         value={row.address}
                         onChange={(e) => onUpdateStore(row.orderId, { address: e.target.value })}
+                        onBlur={() => onPersistStore(row.orderId)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="date"
+                        value={row.deliveryDate}
+                        onChange={(e) => onUpdateStore(row.orderId, { delivery_date: e.target.value })}
                         onBlur={() => onPersistStore(row.orderId)}
                       />
                     </td>
@@ -284,6 +353,7 @@ export default function OrdersPanel({
                         </span>
                       )}
                     </td>
+                    <td>{row.deliveryDate}</td>
                     <td>
                       {formatTime(row.timeWindowStart, timeFormat)} - {formatTime(row.timeWindowEnd, timeFormat)}
                     </td>

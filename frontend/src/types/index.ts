@@ -13,6 +13,7 @@ export interface Store {
   case_count: number
   approximate_location: boolean
   invoice_number: string | null
+  delivery_date: string | null
 }
 
 export interface Driver {
@@ -76,6 +77,7 @@ export interface ConfirmImportFields {
   time_window_start: string
   time_window_end: string
   case_count: number
+  delivery_date: string
 }
 
 export interface OfficeLocation {
@@ -96,6 +98,7 @@ export interface UpdateStoreFields {
   time_window_start: string
   time_window_end: string
   case_count: number
+  delivery_date: string
 }
 
 export interface Settings {

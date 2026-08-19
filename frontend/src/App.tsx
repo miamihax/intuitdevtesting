@@ -187,6 +187,7 @@ export default function App() {
       time_window_start: store.time_window_start,
       time_window_end: store.time_window_end,
       case_count: store.case_count,
+      delivery_date: store.delivery_date ?? new Date().toISOString().slice(0, 10),
     }
     api
       .updateStore(storeId, fields)

@@ -64,6 +64,7 @@ def confirm_import(pending_id: str, request: ConfirmImportRequest) -> Store:
         time_window_start=request.time_window_start,
         time_window_end=request.time_window_end,
         case_count=request.case_count,
+        delivery_date=request.delivery_date,
     )
 
 

@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from .data import STORES, save_stores
 from .models import Coordinates, Store
@@ -34,6 +35,7 @@ def add_store(
     time_window_start: str | None,
     time_window_end: str | None,
     case_count: int | None,
+    delivery_date: str | None = None,
 ) -> Store:
     store = Store(
         id=unique_store_id(invoice_number),
@@ -45,6 +47,7 @@ def add_store(
         time_window_end=time_window_end or DEFAULT_TIME_WINDOW_END,
         case_count=case_count or 0,
         invoice_number=invoice_number,
+        delivery_date=delivery_date or date.today().isoformat(),
     )
     STORES.append(store)
     save_stores()
